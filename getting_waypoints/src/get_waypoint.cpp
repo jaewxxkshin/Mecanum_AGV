@@ -10,6 +10,8 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "ros_realsense_opencv_tutorial");
     ros::NodeHandle nh;
+    ros::Publisher waypoints_x = nh.advertise<std_msgs::Int16MultiArray>("waypoints_x", 10);
+    ros::Publisher waypoints_y = nh.advertise<std_msgs::Int16MultiArray>("waypoints_y", 10);
     // ros::Publisher msg_hsv = nh.advertise<std_msgs::Int16MultiArray>("msg_hsv", 1000);  
     // get camera info
     rs2::pipeline pipe;
@@ -208,8 +210,6 @@ int main(int argc, char **argv)
                 {
                     wp_y.push_back(top_y/10*(i+1));
                     wp_x.push_back((vx/vy*(wp_y[i]-converted_y)+converted_x));
-                    // use make_pair [W]
-                    wp_xy.push_back(make_pair(wp_x[i], wp_y[i]));
                 }
                 // visualization representive line [W]
                 line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
@@ -243,14 +243,23 @@ int main(int argc, char **argv)
                 circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
             }
             
-            // print x,y position of way points [W]
-            for(int i = 0; i < wp_xy.size(); i++)
+
+            // to pubish each waypoint [W]
+            //-----------------------------------
+            set_array(test_x, 10);
+            set_array(test_y, 10);
+            
+            for(int i = 0; i < wp_x.size(); i++)
             {
-                x_pos = wp_xy[i].first*distance_of_pixel;
-                y_pos =  wp_xy[i].second*distance_of_pixel;
-                cout <<"way point" << i + 1<< "'s x value : " << x_pos << "cm, way point"
-                << i + 1 << "'s y value: " << y_pos<< "cm" <<endl;
+                test_x.data[i] = wp_x[i];
+                test_y.data[i] = wp_y[i];
             }
+
+            waypoints_x.publish(test_x);
+            waypoints_y.publish(test_y);
+            // //-----------------------------------
+
+            
            
             // vector initialization [W]
             //----------------------------
@@ -260,10 +269,10 @@ int main(int argc, char **argv)
             vec_delete(wp_y);
             vec_delete(bottom_x);
             vec_delete_p(contours_sum);
-            vec_delete_pair(wp_xy);
             //----------------------------
         
             imwrite("res.png", res);
+
             // need trouble shooting [W]
             loop_rate.sleep();
             ros::spinOnce();

@@ -11,6 +11,10 @@
 #include <std_msgs/Int16MultiArray.h>
 
 
+// for test to publish way points [W]
+std_msgs::Int16MultiArray test_x;
+std_msgs::Int16MultiArray test_y;
+
 // constant value[JH]
 #define left_width 310
 #define right_width 885
@@ -111,9 +115,6 @@ float vx, vy;
 // varaitons of kmeans algorithm
 int width, height,  x, y, n, nPoints, cIndex, iTemp;
 int upper_x, lower_x, top_y, converted_x, converted_y, right_x, left_x;
-
-// 2-D vector for way points [W]
-vector<pair<int, int>> wp_xy;
 
 // x, y positions [W]
 float x_pos, y_pos;

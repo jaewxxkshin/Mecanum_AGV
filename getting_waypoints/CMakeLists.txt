@@ -9,10 +9,10 @@ add_compile_options(-std=c++11)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   cv_bridge
+  std_msgs
   message_generation
   roscpp
   rospy
-  std_msgs
 )
 
 find_package(OpenCV REQUIRED)
@@ -54,8 +54,7 @@ find_package(realsense2 REQUIRED)
 ## Generate messages in the 'msg' folder
 # add_message_files(
 #   FILES
-#   Message1.msg
-#   Message2.msg
+#   Num.msg
 # )
 
 ## Generate services in the 'srv' folder
@@ -109,6 +108,7 @@ find_package(realsense2 REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
+#  CATKIN_DEPENDS message_runtime
 #  LIBRARIES camera_jh
 #  CATKIN_DEPENDS cv_bridge message_generation roscpp rospy std_msgs
 #  DEPENDS system_lib
@@ -217,3 +217,4 @@ target_link_libraries(getting_waypoints ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} 
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
