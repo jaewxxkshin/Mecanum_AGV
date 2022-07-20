@@ -7,7 +7,11 @@ project(setting_tf2)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
+  tf2
+  tf2_ros
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -112,8 +116,8 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
-# ${catkin_INCLUDE_DIRS}
+  include
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -125,6 +129,11 @@ include_directories(
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
 # add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+add_executable(setting_t265_world src/setting_t265_world.cpp)
+add_executable(setting_d435_frame src/setting_d435_frame.cpp)
+add_executable(tf_listener src/tf_listener.cpp)
+
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -145,6 +154,15 @@ include_directories(
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
+target_link_libraries(setting_t265_world
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(setting_d435_frame
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(tf_listener
+  ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##
