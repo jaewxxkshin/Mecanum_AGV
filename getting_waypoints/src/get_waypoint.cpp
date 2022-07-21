@@ -27,17 +27,16 @@ int main(int argc, char **argv)
         frames = pipe.wait_for_frames();
     }
     // need to trouble shooting about ros loop rate
-    ros::Rate loop_rate(30);
-
+    // ros::Rate loop_rate(1);
 
     while(ros::ok())
     {
-
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
-        cout << "count : " << countt << endl;
+        // cout << "count : " << countt << endl;
         //imshow("Display Image", src);
-
+        // Image generation variation[W]
+        Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
         // perspective transform [JH]
         src_p[0] = Point2f(443,478);
         src_p[1] = Point2f(336,720);
@@ -51,16 +50,14 @@ int main(int argc, char **argv)
         
         Mat perspective_mat = getPerspectiveTransform(src_p, dst_p);
 
-        //get image at regular intervals[W]
-        if(countt== 0 || countt ==120) 
+        //get image at regular intervals(4s)[W]
+        if(countt== 0 || countt == 50) 
         { 
             // initailization of renewal flag variation[W]
             countt=0;
 
             // variations [W]
             //------------------------------------------------------------------------------------------
-            // Image generation variation[W]
-            Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
            
             // perspective matrix [W]
             warpPerspective(src, dst, perspective_mat, Size(1280,720));
@@ -274,7 +271,7 @@ int main(int argc, char **argv)
             imwrite("res.png", res);
 
             // need trouble shooting [W]
-            loop_rate.sleep();
+            // loop_rate.sleep();
             ros::spinOnce();
         }
         countt++;

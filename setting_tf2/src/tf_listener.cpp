@@ -16,10 +16,11 @@ int main(int argc, char** argv){
     tf2_ros::TransformListener tfListener(tfBuffer);
  
 
-    ros::Rate rate(250);
+    ros::Rate rate(1);
     while(nh.ok()){
         geometry_msgs::TransformStamped transformStamped;
         try{
+            // argv[0] & argv[1]'s order trouble [W] 
             transformStamped = tfBuffer.lookupTransform("t265_world","d435_frame",ros::Time(0));
         }
         catch(tf2::TransformException &ex){

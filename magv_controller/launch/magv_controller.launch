@@ -1,0 +1,11 @@
+<launch>
+    <include file="$(find setting_tf2)/launch/setting_tf2.launch">
+    </include>
+    <!-- t265 -->
+    <include file="$(find realsense2_camera)/launch/rs_t265.launch">
+    </include>
+
+    <node name="magv_controller"  pkg="magv_controller" type="magv_controller"  output="screen"/>
+    <node name="getting_waypoint"  pkg="getting_waypoints" type="getting_waypoints"  output="screen"/>
+
+</launch>
