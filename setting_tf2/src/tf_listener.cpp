@@ -9,8 +9,8 @@ int main(int argc, char** argv){
 
     ros::NodeHandle nh;
 
-    ros::Publisher pos=nh.advertise<geometry_msgs::Vector3>("/t265_pos",100);
-    ros::Publisher rot=nh.advertise<geometry_msgs::Quaternion>("/t265_rot",100);
+    ros::Publisher pos=nh.advertise<geometry_msgs::Vector3>("/d435_pos",100);
+    ros::Publisher rot=nh.advertise<geometry_msgs::Quaternion>("/d435_rot",100);
 
     tf2_ros::Buffer tfBuffer;
     tf2_ros::TransformListener tfListener(tfBuffer);

@@ -8,18 +8,18 @@
 #include <vector>
 #include <math.h>
 #include <numeric>
-#include <std_msgs/Int16MultiArray.h>
+#include <std_msgs/Float32MultiArray.h>
 
 
 // for test to publish way points [W]
-std_msgs::Int16MultiArray test_x;
-std_msgs::Int16MultiArray test_y;
+std_msgs::Float32MultiArray test_x;
+std_msgs::Float32MultiArray test_y;
 
 // constant value[JH]
 #define left_width 310
 #define right_width 885
 #define img_height 720
-#define distance_of_pixel 0.075  //cm
+#define distance_of_pixel 0.00075  //m
 #define pixels 72
 #define PI 3.141592
 #define corner_threshold 700
@@ -32,6 +32,11 @@ void vec_delete(vector<int> &vec)
 {
     vec.clear();
     vector<int>().swap(vec);
+}
+void vec_delete_float(vector<float> &vec)
+{
+    vec.clear();
+    vector<float>().swap(vec);
 }
 
 void vec_delete_p(vector<Point> &vec)
@@ -78,7 +83,7 @@ int inv_convert_y( const int &y)
 // -------------------------------------------
 
 // resize function [HW]
-void set_array(std_msgs::Int16MultiArray &arr, const int &n)
+void set_array(std_msgs::Float32MultiArray &arr, const int &n)
 {
   arr.data.resize(n);
   return;
@@ -89,6 +94,7 @@ Mat src, dst, image, mask, mask_sc, res, hsv, points, labels, centers;
 
 // point for warp
 Point2f src_p[4], dst_p[4];
+
 
 const int cluster_k = 8;
 
@@ -105,8 +111,8 @@ Vec4f detected_line;
 vector<int> y_val,  x_val;
 
 // vector that contains waypoint's position [W]
-vector<int> wp_y;
-vector<int> wp_x;
+vector<float> wp_y;
+vector<float> wp_x;
 vector<int> bottom_x;
 
 // variation after applying fitLine() function [W]
@@ -133,3 +139,4 @@ Scalar upper_blue = Scalar(130, 255, 255);
 
 // Image renewal flag variation [W]
 int countt = 0;
+

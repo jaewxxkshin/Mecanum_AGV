@@ -10,9 +10,9 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "ros_realsense_opencv_tutorial");
     ros::NodeHandle nh;
-    ros::Publisher waypoints_x = nh.advertise<std_msgs::Int16MultiArray>("waypoints_x", 10);
-    ros::Publisher waypoints_y = nh.advertise<std_msgs::Int16MultiArray>("waypoints_y", 10);
-    // ros::Publisher msg_hsv = nh.advertise<std_msgs::Int16MultiArray>("msg_hsv", 1000);  
+    ros::Publisher waypoints_x = nh.advertise<std_msgs::Float32MultiArray>("waypoints_x", 10);
+    ros::Publisher waypoints_y = nh.advertise<std_msgs::Float32MultiArray>("waypoints_y", 10);
+    
     // get camera info
     rs2::pipeline pipe;
     rs2::config cfg;
@@ -21,33 +21,32 @@ int main(int argc, char **argv)
     cfg.enable_stream(RS2_STREAM_COLOR, 1280,720, RS2_FORMAT_BGR8, 30);
     pipe.start(cfg);    
 
+    // perspective transform [JH]
+    src_p[0] = Point2f(443,478);
+    src_p[1] = Point2f(336,720);
+    src_p[2] = Point2f(855,474);
+    src_p[3] = Point2f(940,720);
+
+    dst_p[0] = Point2f(604-268/2,720-268/2*3/2);
+    dst_p[1] = Point2f(604-268/2,720);
+    dst_p[2] = Point2f(604+268/2,720-268/2*3/2);
+    dst_p[3] = Point2f(604+268/2,720);
+
     // if it doesn't exist, it cause error [JH]
-    for(int i=0; i < 30; i ++)
+    for(int i=0; i < 50; i ++)
     {
         frames = pipe.wait_for_frames();
     }
-    // need to trouble shooting about ros loop rate
-    // ros::Rate loop_rate(1);
 
     while(ros::ok())
     {
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
         // cout << "count : " << countt << endl;
-        //imshow("Display Image", src);
+        
         // Image generation variation[W]
         Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
-        // perspective transform [JH]
-        src_p[0] = Point2f(443,478);
-        src_p[1] = Point2f(336,720);
-        src_p[2] = Point2f(855,474);
-        src_p[3] = Point2f(940,720);
-        
-        dst_p[0] = Point2f(604-268/2,720-268/2*3/2);
-        dst_p[1] = Point2f(604-268/2,720);
-        dst_p[2] = Point2f(604+268/2,720-268/2*3/2);
-        dst_p[3] = Point2f(604+268/2,720);
-        
+
         Mat perspective_mat = getPerspectiveTransform(src_p, dst_p);
 
         //get image at regular intervals(4s)[W]
@@ -248,8 +247,9 @@ int main(int argc, char **argv)
             
             for(int i = 0; i < wp_x.size(); i++)
             {
-                test_x.data[i] = wp_x[i];
-                test_y.data[i] = wp_y[i];
+                test_x.data[i] = wp_x[i]*distance_of_pixel;
+                test_y.data[i] = wp_y[i]*distance_of_pixel;
+         
             }
 
             waypoints_x.publish(test_x);
@@ -262,8 +262,8 @@ int main(int argc, char **argv)
             //----------------------------
             vec_delete(x_val);
             vec_delete(y_val);
-            vec_delete(wp_x);
-            vec_delete(wp_y);
+            vec_delete_float(wp_x);
+            vec_delete_float(wp_y);
             vec_delete(bottom_x);
             vec_delete_p(contours_sum);
             //----------------------------
