@@ -20,7 +20,7 @@ int main(int argc, char** argv){
     while(nh.ok()){
         geometry_msgs::TransformStamped transformStamped;
         try{
-            transformStamped = tfBuffer.lookupTransform("d435_frame","t265_world",ros::Time(0));
+            transformStamped = tfBuffer.lookupTransform("t265_world","d435_frame",ros::Time(0));
         }
         catch(tf2::TransformException &ex){
             ROS_WARN("%s",ex.what());
@@ -31,8 +31,8 @@ int main(int argc, char** argv){
         geometry_msgs::Vector3 trans;
         geometry_msgs::Quaternion quat;
 
-        trans.x=-(transformStamped.transform.translation.x);
-        trans.y=-(transformStamped.transform.translation.y);
+        trans.x=transformStamped.transform.translation.x;
+        trans.y=transformStamped.transform.translation.y;
         trans.z=transformStamped.transform.translation.z;
 
         quat.x=transformStamped.transform.rotation.x;
