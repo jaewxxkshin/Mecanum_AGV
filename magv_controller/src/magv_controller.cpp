@@ -1,6 +1,9 @@
 #include <ros/ros.h>
 #include <iostream>
 
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Dense>
+
 #include "tf/transform_datatypes.h"
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_msgs/TFMessage.h>
@@ -11,13 +14,26 @@
 #include <std_msgs/Int16MultiArray.h>
 #include <std_msgs/Float32MultiArray.h>
 
+
+#include "nav_msgs/Odometry.h"
+
 geometry_msgs::Vector3 pos;
 std_msgs::Float32MultiArray wp_x_sub;
 std_msgs::Float32MultiArray wp_y_sub;
 
+geometry_msgs::Vector3 t265_lin_vel;
+geometry_msgs::Vector3 t265_ang_vel;
+
+Eigen::Vector3d cam_v;
+
+
 void posCallback(const geometry_msgs::Vector3& msg);
 void wp_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void wp_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
+void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
+
+
+ros::Publisher linear_velocity;
 
 int main(int argc, char **argv)
 {   
@@ -27,9 +43,13 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(1);    
     wp_x_sub.data.resize(10);
     wp_y_sub.data.resize(10);
+
+
+
     ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);//ros::TransportHints().tcpNoDelay());
     ros::Subscriber waypoint_x=nh.subscribe("waypoints_x",100,wp_x_Callback);//ros::TransportHints().tcpNoDelay());
     ros::Subscriber waypoint_y=nh.subscribe("waypoints_y",100,wp_y_Callback);//ros::TransportHints().tcpNoDelay());
+	ros::Subscriber t265_odom=nh.subscribe("/camera/odom/sample",100,t265OdomCallback,ros::TransportHints().tcpNoDelay());
     
     ros::spin();
 	loop_rate.sleep();
@@ -75,4 +95,12 @@ void wp_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 	//[W] each channels's values
 	ROS_INFO(" y_1:[%f] y_2:[%f] y_3:[%f] y_4:[%f] y_5:[%f] y_6:[%f] y_7:[%f] y_8:[%f] y_9:[%f] y_10:[%f]",
      wp_y_sub.data[0], wp_y_sub.data[1], wp_y_sub.data[2], wp_y_sub.data[3],wp_y_sub.data[4],wp_y_sub.data[5], wp_y_sub.data[6], wp_y_sub.data[7],wp_y_sub.data[8], wp_y_sub.data[9]);
+}
+
+void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg){
+	t265_lin_vel=msg->twist.twist.linear;
+	t265_ang_vel=msg->twist.twist.angular;
+	cam_v << t265_lin_vel.x, t265_lin_vel.y, t265_lin_vel.z;
+
+	ROS_INFO("Linear_velocity - [x: %f  y: %f  z:%f]",cam_v(0),cam_v(1),cam_v(2));
 }

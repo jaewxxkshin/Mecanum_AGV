@@ -17,7 +17,10 @@ find_package(catkin REQUIRED
     message_generation
     )
 
-
+find_package(cmake_modules REQUIRED)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(Eigen REQUIRED)
+include_directories(${Eigen_INCLUDE_DIRS})
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -113,6 +116,7 @@ catkin_package(
  LIBRARIES magv_controller
  CATKIN_DEPENDS roscpp std_msgs message_runtime
 #  DEPENDS system_lib
+ DEPENDS Eigen
 )
 
 ###########
@@ -142,7 +146,7 @@ ${catkin_INCLUDE_DIRS}
 # add_executable(${PROJECT_NAME}_node src/magv_controller_node.cpp)
 
 add_executable(magv_controller src/magv_controller.cpp)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES} ${Eigen_LIBRARIES})
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
