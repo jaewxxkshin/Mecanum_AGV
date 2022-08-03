@@ -1,3 +1,4 @@
+
 #include "get_waypoint.hpp"
 
 using namespace cv;
@@ -14,8 +15,9 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "ros_realsense_opencv_tutorial");
     ros::NodeHandle nh;
-    ros::Publisher waypoints_x = nh.advertise<std_msgs::Float32MultiArray>("waypoints_x", 10);
-    ros::Publisher waypoints_y = nh.advertise<std_msgs::Float32MultiArray>("waypoints_y", 10);
+    // ros::Publisher waypoints_x = nh.advertise<std_msgs::Float32MultiArray>("waypoints_x", 10);
+    // ros::Publisher waypoints_y = nh.advertise<std_msgs::Float32MultiArray>("waypoints_y", 10);
+    ros::Publisher waypoints_set = nh.advertise<std_msgs::Float32MultiArray>("waypoints_set", 10);
     ros::Time timer;      
     // get camera info
     rs2::pipeline pipe;
@@ -45,7 +47,7 @@ int main(int argc, char **argv)
     while(ros::ok())
     {   
         timer = ros::Time::now();
-        cout << timer << endl;
+        // cout << timer << endl;
         // prev_time=clock();
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
@@ -231,19 +233,20 @@ int main(int argc, char **argv)
         
         // to pubish each waypoint [W]
         //-----------------------------------
-        set_array(test_x, 10);
-        set_array(test_y, 10);
+     
+
+        set_array(wp_set, 20);
         
         for(int i = 0; i < wp_x.size(); i++)
+       
         {
-            test_x.data[i] = wp_x[i]*distance_of_pixel;
-            test_y.data[i] = wp_y[i]*distance_of_pixel;
-        
+            wp_set.data[2*i] = wp_x[i]*distance_of_pixel;
+            wp_set.data[2*i+1] = wp_y[i]*distance_of_pixel;
         }
-        waypoints_x.publish(test_x);
-        waypoints_y.publish(test_y);
+
+        waypoints_set.publish(wp_set);
+
         // //-----------------------------------
-        
         
         // vector initialization [W]
         //----------------------------
@@ -261,6 +264,7 @@ int main(int argc, char **argv)
         // ROSINFO(ros::Time::now());
 
         imwrite("res.png", res);        
+        // sleep(60);
         // need trouble shooting [W]
         // loop_rate.sleep();
         ros::spinOnce();

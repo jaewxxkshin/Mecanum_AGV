@@ -10,10 +10,13 @@
 #include <numeric>
 #include <std_msgs/Float32MultiArray.h>
 #include <time.h>
+#include <unistd.h> // for sleep [JH]
 
 // for test to publish way points [W]
-std_msgs::Float32MultiArray test_x;
-std_msgs::Float32MultiArray test_y;
+// std_msgs::Float32MultiArray test_x;
+// std_msgs::Float32MultiArray test_y;
+
+std_msgs::Float32MultiArray wp_set;
 
 // constant value[JH]
 #define left_width 310
@@ -25,10 +28,7 @@ std_msgs::Float32MultiArray test_y;
 #define corner_threshold 700
 
 using namespace cv;
-using namespace std;
-
-// vector element initialization [W]
-void vec_delete(vector<int> &vec)
+using namespace std;// #include <unistd.h>
 {
     vec.clear();
     vector<int>().swap(vec);
@@ -43,11 +43,7 @@ void vec_delete_p(vector<Point> &vec)
 {
     vec.clear();
     vector<Point>().swap(vec);
-}
-
-void vec_delete_pair(vector<pair<int, int>> &vec)
-{
-    vec.clear();
+}// #include <unistd.h>
     vector<pair<int, int>>().swap(vec);
 }
 
