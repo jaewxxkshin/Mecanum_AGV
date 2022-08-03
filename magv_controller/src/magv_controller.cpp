@@ -27,12 +27,14 @@ geometry_msgs::Quaternion rot;
 geometry_msgs::Vector3 t265_ang_vel;
 
 std_msgs::Float32MultiArray wp_set_sub;
+std_msgs::Float32MultiArray arr_psi;
 
 std::vector<double> wp_r_x;
 std::vector<double> wp_r_y;
 
 bool flag = 0;
 // control variable
+float des_psi;
 double e_x, e_y, e_psi;
 double p_x, i_x, d_x;
 double p_y, i_y, d_y;
@@ -61,23 +63,26 @@ void pos_ctrl();
 int main(int argc, char **argv)
 {   
     ros::init(argc, argv,"magv_controller");
-    ros::NodeHandle nh;
-    ros::Rate loop_rate(1);    
+    ros::NodeHandle nh;  
 	wp_set_sub.data.resize(20);
+	arr_psi.data.resize(1);
+
+	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
 
 	// ros::Publisher pwm_to_vel = nh.advertise<std_msgs::Int16MultiArray>("pwm_to_vel", 1000);
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);//ros::TransportHints().tcpNoDelay());
 	ros::Subscriber waypoint_set=nh.subscribe("waypoints_set",100,wp_set_Callback);//ros::TransportHints().tcpNoDelay());
     ros::Subscriber t265_odom=nh.subscribe("/camera/odom/sample",100,t265OdomCallback,ros::TransportHints().tcpNoDelay());
-
-	// while(ros::ok())
-	// {
-
-	// }
-	ros::spin();
-
-	loop_rate.sleep();
+	
+	ros::Rate loop_rate(100);
+	
+	while (ros::ok()) 
+	{
+		pub_psi.publish(arr_psi);
+		ros::spinOnce();
+		loop_rate.sleep();
+	}
     return 0;
 }
 
@@ -152,8 +157,9 @@ void pos_ctrl()
 	if( distance < threshold) idx += 1;
 	//std::cout << idx << std::endl;
 	distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));
-	e_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))- (M_PI/2);
-	std::cout << " e_ psi : " << e_psi << std::endl;
+	des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))- (M_PI/2);
+	std::cout << " des_ psi : " << des_psi << std::endl;
+	arr_psi.data[0] = des_psi;
 	// R = L / tan(e_psi);
 	
 	// cmd_psi = p_psi*e_psi + i_psi*e_psi*(1/freq) - d_psi*t265_ang_vel.z;
