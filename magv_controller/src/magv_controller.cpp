@@ -152,10 +152,13 @@ void pos_ctrl()
 	if( distance < threshold) idx += 1;
 	//std::cout << idx << std::endl;
 	distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));
-	e_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))-(cam_att(2) + M_PI/2);
-	cmd_psi = p_psi*e_psi + i_psi*e_psi*(1/freq) - d_psi*t265_ang_vel.z;
+	e_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))- (M_PI/2);
+	std::cout << " e_ psi : " << e_psi << std::endl;
+	// R = L / tan(e_psi);
+	
+	// cmd_psi = p_psi*e_psi + i_psi*e_psi*(1/freq) - d_psi*t265_ang_vel.z;
 	// std::cout << " t265 ang vel : " << t265_ang_vel.z << std::endl;
-	std::cout << " cmd_psi : " << cmd_psi << std::endl;
+	// std::cout << " cmd_psi : " << cmd_psi << std::endl;
 
 	// 0< const_vel < 255
 

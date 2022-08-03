@@ -131,6 +131,7 @@ int main(int argc, char **argv)
         // find contours [HW]
         findContours(mask, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
         drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
+        imwrite("contour.png", image);  
         // get contour's y_val( every y ), x_val (every x ) [JH]
         for ( int i = 0; i < contours.size(); i++)
         {
@@ -147,8 +148,8 @@ int main(int argc, char **argv)
             }
         }
         // contour's x,y min/max value [JH]
-        int min = *min_element(y_val.begin(),y_val.end()); 
-        int max = *max_element(y_val.begin(),y_val.end()); 
+        int min = *min_element(y_val.begin(),y_val.end());
+        int max = *max_element(y_val.begin(),y_val.end());
         int x_left = *min_element(x_val.begin(),x_val.end());
         int x_right = *max_element(x_val.begin(),x_val.end());
          
@@ -163,6 +164,7 @@ int main(int argc, char **argv)
                 }
             }
         }
+
         // get avg of contour's bottom x value [JH]
         int sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
         int mean_bottom_x = sum_bottom_x/bottom_x.size();
@@ -188,16 +190,19 @@ int main(int argc, char **argv)
         left_x = convert_x(x_left);
         right_x = convert_x(x_right);
         // get the source of drawing straight line [JH]
-        upper_x = int(vx/vy*(top_y-converted_y)+converted_x);
-        lower_x = int(vx/vy*(-1*converted_y) + converted_x);
-        
+        upper_x = int(-vx/vy*(top_y-converted_y)+converted_x);
+        lower_x = int(-vx/vy*(-1*converted_y) + converted_x);
+        cout << "uppper x : " << upper_x << endl;
+        cout << "lower x : " << lower_x << endl;
         // waypoint visualization [W]
         if(top_y > corner_threshold) // go straight
         {
             for(int i=0; i<10; i++)
             {
                 wp_y.push_back(top_y/10*(i+1));
-                wp_x.push_back((vx/vy*(wp_y[i]-converted_y)+converted_x));
+                cout << "wp_y _pointing wp " << i << " : " << top_y/10*(i+1)<<endl;
+                wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
+                cout << "wp_x _pointing wp " << i << " : " << (vx/vy*(wp_y[i]-converted_y)+converted_x)<<endl;
             }
             // visualization representive line [W]
             line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
@@ -226,6 +231,7 @@ int main(int argc, char **argv)
                 }
             }
         }
+
         for(int i=0; i<10; i++)
         {
             circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
