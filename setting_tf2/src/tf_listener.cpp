@@ -16,7 +16,7 @@ int main(int argc, char** argv){
     tf2_ros::TransformListener tfListener(tfBuffer);
  
 
-    ros::Rate rate(1);
+    ros::Rate rate(30);
     while(nh.ok()){
         geometry_msgs::TransformStamped transformStamped;
         try{

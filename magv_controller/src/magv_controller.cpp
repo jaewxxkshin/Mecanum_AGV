@@ -14,6 +14,8 @@
 #include <std_msgs/Float32MultiArray.h>
 #include "nav_msgs/Odometry.h"
 
+#define const_vel 10
+#define L 0.43
 
 //~~~~~~~~variable
 double temp1, temp2;
@@ -22,6 +24,7 @@ double t265_px, t265_py;
 
 geometry_msgs::Vector3 pos;
 geometry_msgs::Quaternion rot;
+geometry_msgs::Vector3 t265_ang_vel;
 
 std_msgs::Float32MultiArray wp_set_sub;
 
@@ -33,10 +36,14 @@ bool flag = 0;
 double e_x, e_y, e_psi;
 double p_x, i_x, d_x;
 double p_y, i_y, d_y;
-double p_psi, i_psi, d_psi;
+double p_psi = 1;
+double i_psi = 0.3;
+double d_psi = 0.1;
+double cmd_psi = 0;
 double distance = 1.;
 double threshold = 0.03;
 int idx = 0;
+double freq = 30;//controller loop frequency
 
 Eigen::Vector3d cam_att;
 
@@ -58,11 +65,16 @@ int main(int argc, char **argv)
     ros::Rate loop_rate(1);    
 	wp_set_sub.data.resize(20);
 
+	// ros::Publisher pwm_to_vel = nh.advertise<std_msgs::Int16MultiArray>("pwm_to_vel", 1000);
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);//ros::TransportHints().tcpNoDelay());
 	ros::Subscriber waypoint_set=nh.subscribe("waypoints_set",100,wp_set_Callback);//ros::TransportHints().tcpNoDelay());
     ros::Subscriber t265_odom=nh.subscribe("/camera/odom/sample",100,t265OdomCallback,ros::TransportHints().tcpNoDelay());
 
+	// while(ros::ok())
+	// {
+
+	// }
 	ros::spin();
 
 	loop_rate.sleep();
@@ -104,7 +116,7 @@ void rotCallback(const geometry_msgs::Quaternion& msg){
 
 void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg){
 	// t265_lin_vel=msg->twist.twist.linear;
-	// t265_ang_vel=msg->twist.twist.angular;
+	t265_ang_vel=msg->twist.twist.angular;
 	// t265_quat=msg->pose.pose.orientation;
 	tf::Quaternion quat;
 	tf::quaternionMsgToTF(rot,quat);
@@ -141,6 +153,14 @@ void pos_ctrl()
 	//std::cout << idx << std::endl;
 	distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));
 	e_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))-(cam_att(2) + M_PI/2);
-	// std::cout << " e_psi : " << e_psi << std::endl;
-	
+	cmd_psi = p_psi*e_psi + i_psi*e_psi*(1/freq) - d_psi*t265_ang_vel.z;
+	// std::cout << " t265 ang vel : " << t265_ang_vel.z << std::endl;
+	std::cout << " cmd_psi : " << cmd_psi << std::endl;
+
+	// 0< const_vel < 255
+
+	// vx = const_vel * sin(des_psi); // range of des_psi?
+	// vy = const_vel * cos(des_psi);
+	// w = vy / R;
+
 }

@@ -28,7 +28,10 @@ std_msgs::Float32MultiArray wp_set;
 #define corner_threshold 700
 
 using namespace cv;
-using namespace std;// #include <unistd.h>
+using namespace std;
+
+// vector element initialization [W]
+void vec_delete(vector<int> &vec)
 {
     vec.clear();
     vector<int>().swap(vec);
@@ -43,10 +46,13 @@ void vec_delete_p(vector<Point> &vec)
 {
     vec.clear();
     vector<Point>().swap(vec);
-}// #include <unistd.h>
-    vector<pair<int, int>>().swap(vec);
 }
 
+void vec_delete_pair(vector<pair<int, int>> &vec)
+{
+    vec.clear();
+    vector<pair<int, int>>().swap(vec);
+}
 // function for coordinate conversion [JH]
 // -------------------------------------------
 int convert_x (int &x)
