@@ -111,8 +111,8 @@ int main(int argc, char **argv)
         }
 
         // For remove BEV edge [HW]
-        line(res, Point(0,279),Point(314,720),Scalar(0,0,255), 1); 
-        line(res, Point(1280,67),Point(884,720),Scalar(0,0,255), 1);
+        line(res, Point(0,279),Point(314,720),Scalar(0,0,0), 1); 
+        line(res, Point(1280,67),Point(884,720),Scalar(0,0,0), 1);
         
         // BGR -> HSV [HW]
         cvtColor(res, hsv, COLOR_BGR2HSV);
