@@ -44,7 +44,7 @@ double i_psi = 0.3;
 double d_psi = 0.1;
 double cmd_psi = 0;
 double distance = 1.;
-double threshold = 0.03;
+double threshold = 0.01; //need to change
 int idx = 0;
 double freq = 30;//controller loop frequency
 
