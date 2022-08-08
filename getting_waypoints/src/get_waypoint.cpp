@@ -109,7 +109,7 @@ int main(int argc, char **argv)
                 res.at<Vec3b>(y, x)[2] = (uchar)iTemp;
             } 
         }
-
+        //test
         // For remove BEV edge [HW]
         line(res, Point(0,279),Point(314,720),Scalar(0,0,0), 1); 
         line(res, Point(1280,67),Point(884,720),Scalar(0,0,0), 1);
