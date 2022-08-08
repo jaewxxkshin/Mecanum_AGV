@@ -98,7 +98,7 @@ Mat src, dst, image, mask, mask_sc, res, hsv, points, labels, centers;
 Point2f src_p[4], dst_p[4];
 
 
-const int cluster_k = 8;
+const int cluster_k = 4;
 
 // vector for finding contour [W]
 vector<Vec4i> linesP, hierachy;

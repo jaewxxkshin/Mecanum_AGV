@@ -16,6 +16,7 @@
 
 #define const_vel 10
 #define L 0.43
+#define wp_num 10
 
 //~~~~~~~~variable
 double temp1, temp2;
@@ -64,7 +65,7 @@ int main(int argc, char **argv)
 {   
     ros::init(argc, argv,"magv_controller");
     ros::NodeHandle nh;  
-	wp_set_sub.data.resize(20);
+	wp_set_sub.data.resize(wp_num*2);
 	arr_psi.data.resize(1);
 
 	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
@@ -141,14 +142,15 @@ void cal_rot_wp()
 	vec_delete_double(wp_r_y);
 	c = cos(cam_att(2));
 	s = sin(cam_att(2));
-	for(int i = 0; i < 10; i++)
+	for(int i = 0; i < wp_num*2; i++)
 	{
 		temp1 = c*wp_set_sub.data[2*i] - s*wp_set_sub.data[2*i+1] + t265_px;
 		temp2 = s*wp_set_sub.data[2*i] + c*wp_set_sub.data[2*i+1] + t265_py;
 		wp_r_x.push_back(temp1);
 		wp_r_y.push_back(temp2);
-		//std::cout << "wp_r_x: " << wp_r_x[i] << " wp_r_y: " << wp_r_y[i]  << std::endl;
+		std::cout << "wp_r_x: " << wp_r_x[i] << " wp_r_y: " << wp_r_y[i]  << std::endl;
 	}
+	// std::cout << "wp_r_X : " << wp_r_x[0] << "wp_r_y : " << wp_r_y[0] << std::endl;
 	//std::cout <<"s" << std::endl;
 }
 
@@ -157,7 +159,10 @@ void pos_ctrl()
 	if( distance < threshold) idx += 1;
 	//std::cout << idx << std::endl;
 	distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));
-	des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))- (M_PI/2);
+	des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))- (cam_att(2)+M_PI/2);
+	// des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))-atan2((wp_r_y[idx]-pos.y),(wp_r_x[idx]-pos.y));
+	std::cout << " atan2 : " << atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx])) << std::endl;
+	std::cout << " cam_att(2) + M_PI/2 : " <<  (cam_att(2)+M_PI/2) <<std::endl;
 	std::cout << " des_ psi : " << des_psi << std::endl;
 	arr_psi.data[0] = des_psi;
 	// R = L / tan(e_psi);

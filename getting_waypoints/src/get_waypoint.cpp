@@ -7,7 +7,7 @@ using namespace std;
 
 
 // select line which we want to tracking(by color) - demo [HW]
-int color = 1;
+int color = 2;
 // clock_t prev_time, next_time; 
 // double how_long;
 
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     dst_p[1] = Point2f(604-268/2,720);
     dst_p[2] = Point2f(604+268/2,720-268/2*3/2);
     dst_p[3] = Point2f(604+268/2,720);
-
+    
     // if it doesn't exist, it cause error [JH]
     for(int i=0; i < 50; i ++)
     {
@@ -109,6 +109,11 @@ int main(int argc, char **argv)
                 res.at<Vec3b>(y, x)[2] = (uchar)iTemp;
             } 
         }
+
+        // For remove BEV edge [HW]
+        line(res, Point(0,279),Point(314,720),Scalar(0,0,255), 1); 
+        line(res, Point(1280,67),Point(884,720),Scalar(0,0,255), 1);
+        
         // BGR -> HSV [HW]
         cvtColor(res, hsv, COLOR_BGR2HSV);
         
@@ -269,7 +274,8 @@ int main(int argc, char **argv)
         // cout << "time : " << how_long << endl;
         // ROSINFO(ros::Time::now());
 
-        imwrite("res.png", res);        
+        imwrite("res.png", res);     
+        imwrite("mask.png", mask);     
         // sleep(60);
         // need trouble shooting [W]
         // loop_rate.sleep();
