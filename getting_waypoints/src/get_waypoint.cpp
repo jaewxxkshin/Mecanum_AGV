@@ -17,7 +17,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     // ros::Publisher waypoints_x = nh.advertise<std_msgs::Float32MultiArray>("waypoints_x", 10);
     // ros::Publisher waypoints_y = nh.advertise<std_msgs::Float32MultiArray>("waypoints_y", 10);
-    ros::Publisher waypoints_set = nh.advertise<std_msgs::Float32MultiArray>("waypoints_set", 10);
+    ros::Publisher waypoints_set = nh.advertise<std_msgs::Float32MultiArray>("waypoints_set", wp_num);
     ros::Time timer;      
     // get camera info
     rs2::pipeline pipe;
@@ -202,10 +202,10 @@ int main(int argc, char **argv)
         // waypoint visualization [W]
         if(top_y > corner_threshold) // go straight
         {
-            for(int i=0; i<10; i++)
+            for(int i=0; i<wp_num; i++)
             {
-                wp_y.push_back(top_y/10*(i+1));
-                cout << "wp_y _pointing wp " << i << " : " << top_y/10*(i+1)<<endl;
+                wp_y.push_back(top_y/wp_num*(i+1));
+                cout << "wp_y _pointing wp " << i << " : " << top_y/wp_num*(i+1)<<endl;
                 wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
                 cout << "wp_x _pointing wp " << i << " : " << (vx/vy*(wp_y[i]-converted_y)+converted_x)<<endl;
             }
@@ -214,30 +214,30 @@ int main(int argc, char **argv)
         }
         else if(top_y<corner_threshold) // turn right / left
         {
-            for(int i=0; i<10; i++) // circle waypoint y
+            for(int i=0; i<wp_num; i++) // circle waypoint y
             {
-                float theta = (i+1) * 10 * PI / 180;
+                float theta = (i+1) * wp_num * PI / 180;
                 wp_y.push_back(top_y * sin(theta));
             }
             if (vy/vx > 0) // turn left - waypoint x
             {
-                for(int i=0; i<10; i++)
+                for(int i=0; i<wp_num; i++)
                 {
-                    float theta = (i+1)*10 * PI / 180;
+                    float theta = (i+1)*wp_num * PI / 180;
                     wp_x.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
                 }
             } 
             else if (vy/vx < 0) // turn right - waypoint x
             {
-                for(int i=0; i<10; i++)
+                for(int i=0; i<wp_num; i++)
                 {
-                    float theta = (i+1)*10 * PI / 180;
+                    float theta = (i+1)*wp_num * PI / 180;
                     wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
                 }
             }
         }
 
-        for(int i=0; i<10; i++)
+        for(int i=0; i<wp_num; i++)
         {
             circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
         }
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
         //-----------------------------------
      
 
-        set_array(wp_set, 20);
+        set_array(wp_set, wp_num*2);
         
         for(int i = 0; i < wp_x.size(); i++)
        

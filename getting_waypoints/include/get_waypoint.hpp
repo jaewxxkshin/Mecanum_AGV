@@ -27,6 +27,8 @@ std_msgs::Float32MultiArray wp_set;
 #define PI 3.141592
 #define corner_threshold 700
 
+#define wp_num 10
+
 using namespace cv;
 using namespace std;
 
