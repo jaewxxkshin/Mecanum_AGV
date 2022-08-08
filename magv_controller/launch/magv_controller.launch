@@ -6,6 +6,6 @@
     </include>
 
     <node name="magv_controller"  pkg="magv_controller" type="magv_controller"  output="screen"/>
-    <node name="getting_waypoint"  pkg="getting_waypoints" type="getting_waypoints"  output="screen"/>
+    <node name="getting_waypoint"  pkg="getting_waypoints" type="getting_waypoints" output="screen"/>
 
 </launch>

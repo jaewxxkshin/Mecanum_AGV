@@ -4,10 +4,8 @@
 using namespace cv;
 using namespace std;
 
-
-
 // select line which we want to tracking(by color) - demo [HW]
-int color = 2;
+int color = 1;
 // clock_t prev_time, next_time; 
 // double how_long;
 
@@ -85,6 +83,8 @@ int main(int argc, char **argv)
             } 
         }
         
+        
+
         // k-means clustering[W]
         kmeans(points, cluster_k, labels, TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0), 
         20, KMEANS_PP_CENTERS, centers);
@@ -134,6 +134,7 @@ int main(int argc, char **argv)
         }
         //========================================================================
         // find contours [HW]
+        line(mask, Point(0,300),Point(300,720),Scalar(0,0,0), 1); 
         findContours(mask, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
         drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
         imwrite("contour.png", image);  
@@ -197,17 +198,17 @@ int main(int argc, char **argv)
         // get the source of drawing straight line [JH]
         upper_x = int(-vx/vy*(top_y-converted_y)+converted_x);
         lower_x = int(-vx/vy*(-1*converted_y) + converted_x);
-        cout << "uppper x : " << upper_x << endl;
-        cout << "lower x : " << lower_x << endl;
+        // cout << "uppper x : " << upper_x << endl;
+        // cout << "lower x : " << lower_x << endl;
         // waypoint visualization [W]
         if(top_y > corner_threshold) // go straight
         {
             for(int i=0; i<wp_num; i++)
             {
                 wp_y.push_back(top_y/wp_num*(i+1));
-                cout << "wp_y _pointing wp " << i << " : " << top_y/wp_num*(i+1)<<endl;
+                // cout << "wp_y _pointing wp " << i << " : " << top_y/wp_num*(i+1)<<endl;
                 wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
-                cout << "wp_x _pointing wp " << i << " : " << (vx/vy*(wp_y[i]-converted_y)+converted_x)<<endl;
+                // cout << "wp_x _pointing wp " << i << " : " << (vx/vy*(wp_y[i]-converted_y)+converted_x)<<endl;
             }
             // visualization representive line [W]
             line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);

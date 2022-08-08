@@ -19,8 +19,8 @@
 std_msgs::Float32MultiArray wp_set;
 
 // constant value[JH]
-#define left_width 310
-#define right_width 885
+#define left_width 314
+#define right_width 884 
 #define img_height 720
 #define distance_of_pixel 0.00075  //m
 #define pixels 72

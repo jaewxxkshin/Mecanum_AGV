@@ -148,7 +148,7 @@ void cal_rot_wp()
 		temp2 = s*wp_set_sub.data[2*i] + c*wp_set_sub.data[2*i+1] + t265_py;
 		wp_r_x.push_back(temp1);
 		wp_r_y.push_back(temp2);
-		std::cout << "wp_r_x: " << wp_r_x[i] << " wp_r_y: " << wp_r_y[i]  << std::endl;
+		// std::cout << "wp_r_x: " << wp_r_x[i] << " wp_r_y: " << wp_r_y[i]  << std::endl;
 	}
 	// std::cout << "wp_r_X : " << wp_r_x[0] << "wp_r_y : " << wp_r_y[0] << std::endl;
 	//std::cout <<"s" << std::endl;
@@ -163,6 +163,7 @@ void pos_ctrl()
 	// des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))-atan2((wp_r_y[idx]-pos.y),(wp_r_x[idx]-pos.y));
 	std::cout << " atan2 : " << atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx])) << std::endl;
 	std::cout << " cam_att(2) + M_PI/2 : " <<  (cam_att(2)+M_PI/2) <<std::endl;
+
 	std::cout << " des_ psi : " << des_psi << std::endl;
 	arr_psi.data[0] = des_psi;
 	// R = L / tan(e_psi);
