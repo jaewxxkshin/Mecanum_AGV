@@ -100,7 +100,7 @@ Mat src, dst, image, mask, mask_sc, res, hsv, points, labels, centers;
 Point2f src_p[4], dst_p[4];
 
 
-const int cluster_k = 4;
+const int cluster_k = 8;
 
 // vector for finding contour [W]
 vector<Vec4i> linesP, hierachy;
@@ -128,6 +128,9 @@ int upper_x, lower_x, top_y, converted_x, converted_y, right_x, left_x;
 
 // x, y positions [W]
 float x_pos, y_pos;
+
+// variation for conrer
+int corner_flag =0;
 
 // -------------------------------------------
 // Red_HSV_range (based on dataset)

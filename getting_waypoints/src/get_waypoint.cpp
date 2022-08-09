@@ -195,11 +195,13 @@ int main(int argc, char **argv)
         top_y = convert_y(min);
         left_x = convert_x(x_left);
         right_x = convert_x(x_right);
+
         // get the source of drawing straight line [JH]
         upper_x = int(-vx/vy*(top_y-converted_y)+converted_x);
         lower_x = int(-vx/vy*(-1*converted_y) + converted_x);
         // cout << "uppper x : " << upper_x << endl;
         // cout << "lower x : " << lower_x << endl;
+
         // waypoint visualization [W]
         if(top_y > corner_threshold) // go straight
         {
@@ -210,6 +212,7 @@ int main(int argc, char **argv)
                 wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
                 // cout << "wp_x _pointing wp " << i << " : " << (vx/vy*(wp_y[i]-converted_y)+converted_x)<<endl;
             }
+            corner_flag = 0;
             // visualization representive line [W]
             line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
         }
@@ -236,6 +239,7 @@ int main(int argc, char **argv)
                     wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
                 }
             }
+            corner_flag=1;
         }
 
         for(int i=0; i<wp_num; i++)
@@ -247,13 +251,13 @@ int main(int argc, char **argv)
         //-----------------------------------
      
 
-        set_array(wp_set, wp_num*2);
+        set_array(wp_set, wp_num*2+1);
         
         for(int i = 0; i < wp_x.size(); i++)
-       
         {
             wp_set.data[2*i] = wp_x[i]*distance_of_pixel;
             wp_set.data[2*i+1] = wp_y[i]*distance_of_pixel;
+            wp_set.data[2*wp_num] = corner_flag;
         }
 
         waypoints_set.publish(wp_set);

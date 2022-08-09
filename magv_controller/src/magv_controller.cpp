@@ -17,7 +17,7 @@
 #define const_vel 10
 #define L 0.43
 #define wp_num 10
-
+#define how_long_ce 5
 //~~~~~~~~variable
 double temp1, temp2;
 double c, s;
@@ -46,6 +46,8 @@ double cmd_psi = 0;
 double distance = 1.;
 double threshold = 0.01; //need to change
 int idx = 0;
+int corner_flag = 0;
+int close_eye_num =0;
 double freq = 30;//controller loop frequency
 
 Eigen::Vector3d cam_att;
@@ -98,17 +100,37 @@ void posCallback(const geometry_msgs::Vector3& msg){
 
 void wp_set_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	for (int i = 0; i < 20; i++) 
+	corner_flag = array->data[wp_num *2]; // if corner is detected, corner_flag =1
+	std::cout << "corner_flag : " << corner_flag << std::endl;
+
+	if( close_eye_num ==0)
 	{
-		wp_set_sub.data[i] = array->data[i];	
+		for (int i = 0; i < wp_num*2; i++) 
+		{
+			wp_set_sub.data[i] = array->data[i];	
+		}
+		t265_px = pos.x;
+		t265_py = pos.y;
+		cal_rot_wp();
+		flag = 1;
+		// idx will initialized when new waypoint is created
+		std::cout << " waypoint is created now! " <<std::endl;
+		idx = 0;
 	}
-	t265_px = pos.x;
-	t265_py = pos.y;
-	cal_rot_wp();
-	flag = 1;
-	// idx will initialized when new waypoint is created
-	std::cout << " waypoint is created now! " <<std::endl;
-	idx = 0;
+	if(close_eye_num ==10)
+	{
+		close_eye_num = 0;
+	}
+		
+	if (close_eye_num>0)
+	{
+		close_eye_num ++;
+	}
+
+	if (corner_flag==1)
+	{
+		close_eye_num ++;
+	}	
 }
 
 
@@ -161,8 +183,8 @@ void pos_ctrl()
 	distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));
 	des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))- (cam_att(2)+M_PI/2);
 	// des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))-atan2((wp_r_y[idx]-pos.y),(wp_r_x[idx]-pos.y));
-	std::cout << " atan2 : " << atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx])) << std::endl;
-	std::cout << " cam_att(2) + M_PI/2 : " <<  (cam_att(2)+M_PI/2) <<std::endl;
+	// std::cout << " atan2 : " << atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx])) << std::endl;
+	// std::cout << " cam_att(2) + M_PI/2 : " <<  (cam_att(2)+M_PI/2) <<std::endl;
 
 	std::cout << " des_ psi : " << des_psi << std::endl;
 	arr_psi.data[0] = des_psi;
