@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 {   
     ros::init(argc, argv,"magv_controller");
     ros::NodeHandle nh;  
-	wp_set_sub.data.resize(wp_num*2);
+	wp_set_sub.data.resize(wp_num*2+1);
 	arr_psi.data.resize(1);
 
 	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
@@ -164,7 +164,7 @@ void cal_rot_wp()
 	vec_delete_double(wp_r_y);
 	c = cos(cam_att(2));
 	s = sin(cam_att(2));
-	for(int i = 0; i < wp_num*2; i++)
+	for(int i = 0; i < wp_num; i++)
 	{
 		temp1 = c*wp_set_sub.data[2*i] - s*wp_set_sub.data[2*i+1] + t265_px;
 		temp2 = s*wp_set_sub.data[2*i] + c*wp_set_sub.data[2*i+1] + t265_py;
