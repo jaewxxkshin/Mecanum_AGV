@@ -11,12 +11,15 @@
 #include <std_msgs/Float32MultiArray.h>
 #include <time.h>
 #include <unistd.h> // for sleep [JH]
+#include <std_msgs/Bool.h>
+
 
 // for test to publish way points [W]
 // std_msgs::Float32MultiArray test_x;
 // std_msgs::Float32MultiArray test_y;
 
 std_msgs::Float32MultiArray wp_set;
+std_msgs::Bool corner_flag;
 
 // constant value[JH]
 #define left_width 314
@@ -128,9 +131,6 @@ int upper_x, lower_x, top_y, converted_x, converted_y, right_x, left_x;
 
 // x, y positions [W]
 float x_pos, y_pos;
-
-// variation for conrer
-int corner_flag =0;
 
 // -------------------------------------------
 // Red_HSV_range (based on dataset)
