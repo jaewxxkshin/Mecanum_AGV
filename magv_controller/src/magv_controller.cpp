@@ -31,8 +31,8 @@ geometry_msgs::Vector3 t265_ang_vel;
 std_msgs::Float32MultiArray wp_set_sub;
 std_msgs::Float32MultiArray arr_psi;
 
-std::vector<double> wp_r_x;
-std::vector<double> wp_r_y;
+std::vector<float> wp_r_x;
+std::vector<float> wp_r_y;
 
 bool corner_flag = false;
 bool flag = 0;
@@ -57,9 +57,10 @@ Eigen::Vector3d cam_att;
 // ----------------------------------------------------------------------------
 void rotCallback(const geometry_msgs::Quaternion& msg);
 void posCallback(const geometry_msgs::Vector3& msg);
-void wp_set_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
+void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
+void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
-void vec_delete_double(std::vector<double> &vec);
+void vec_delete_float(std::vector<float> &vec);
 void cal_rot_wp();
 void pos_ctrl();
 void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision);
@@ -77,8 +78,9 @@ int main(int argc, char **argv)
 
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);//ros::TransportHints().tcpNoDelay());
-	ros::Subscriber waypoint_set=nh.subscribe("waypoints_set",100,wp_set_Callback);//ros::TransportHints().tcpNoDelay());
-    ros::Subscriber t265_odom=nh.subscribe("/camera/odom/sample",100,t265OdomCallback,ros::TransportHints().tcpNoDelay());
+	ros::Subscriber waypoint_r_x_sub =nh.subscribe("wp_r_x",100,wp_r_x_Callback);
+    ros::Subscriber waypoint_r_y_sub =nh.subscribe("wp_r_y",100,wp_r_y_Callback);
+	ros::Subscriber t265_odom=nh.subscribe("/camera/odom/sample",100,t265OdomCallback,ros::TransportHints().tcpNoDelay());
 	ros::Subscriber corner_decision_sub=nh.subscribe("/corner_decision",100,corner_decision_Callback);
 
 	ros::Rate loop_rate(100);
@@ -103,19 +105,30 @@ void posCallback(const geometry_msgs::Vector3& msg){
 }
 
 
-void wp_set_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
+void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	for (int i = 0; i < 20; i++) 
+	vec_delete_float(wp_r_x);
+	for (int i = 0; i < wp_num; i++) 
 	{
-		wp_set_sub.data[i] = array->data[i];	
+		wp_r_x.push_back(array->data[i]);	
 	}
-	t265_px = pos.x;
-	t265_py = pos.y;
-	cal_rot_wp();
+	// t265_px = pos.x;
+	// t265_py = pos.y;
+	// cal_rot_wp();
 	flag = 1;
 
 	// idx will initialized when new waypoint is created
 	idx = 0;
+}
+
+void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
+{
+	vec_delete_float(wp_r_y);
+	for (int i = 0; i < wp_num; i++) 
+	{
+		wp_r_y.push_back(array->data[i]);	
+	}
+	std::cout << "test: " << wp_r_y[9] << std::endl;
 }
 
 
@@ -137,27 +150,27 @@ void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg)
 	tf::Matrix3x3(quat).getRPY(cam_att(0),cam_att(1),cam_att(2));
 }
 
-void vec_delete_double(std::vector<double> &vec)
+void vec_delete_float(std::vector<float> &vec)
 {
     vec.clear();
-    std::vector<double>().swap(vec);
+    std::vector<float>().swap(vec);
 }
 
-void cal_rot_wp()
-{	
-	vec_delete_double(wp_r_x);
-	vec_delete_double(wp_r_y);
-	c = cos(cam_att(2));
-	s = sin(cam_att(2));
-	for(int i = 0; i < wp_num; i++)
-	{
-		temp1 = c*wp_set_sub.data[2*i] - s*wp_set_sub.data[2*i+1] + t265_px;
-		temp2 = s*wp_set_sub.data[2*i] + c*wp_set_sub.data[2*i+1] + t265_py;
-		wp_r_x.push_back(temp1);
-		wp_r_y.push_back(temp2);
-		// std::cout << "wp_r_x: " << wp_r_x[i] << " wp_r_y: " << wp_r_y[i]  << std::endl;
-	}
-}
+// void cal_rot_wp()
+// {	
+// 	vec_delete_double(wp_r_x);
+// 	vec_delete_double(wp_r_y);
+// 	c = cos(cam_att(2));
+// 	s = sin(cam_att(2));
+// 	for(int i = 0; i < wp_num; i++)
+// 	{
+// 		temp1 = c*wp_set_sub.data[2*i] - s*wp_set_sub.data[2*i+1] + t265_px;
+// 		temp2 = s*wp_set_sub.data[2*i] + c*wp_set_sub.data[2*i+1] + t265_py;
+// 		wp_r_x.push_back(temp1);
+// 		wp_r_y.push_back(temp2);
+// 		// std::cout << "wp_r_x: " << wp_r_x[i] << " wp_r_y: " << wp_r_y[i]  << std::endl;
+// 	}
+// }
 
 void pos_ctrl()
 {

@@ -18,6 +18,11 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(OpenCV REQUIRED)
 find_package(realsense2 REQUIRED)
 
+find_package(cmake_modules REQUIRED)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+find_package(Eigen REQUIRED)
+include_directories(${Eigen_INCLUDE_DIRS})
+
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -72,10 +77,11 @@ find_package(realsense2 REQUIRED)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+   DEPENDENCIES
+   std_msgs
+   geometry_msgs
+ )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -110,8 +116,9 @@ catkin_package(
 #  INCLUDE_DIRS include
 #  CATKIN_DEPENDS message_runtime
 #  LIBRARIES camera_jh
-#  CATKIN_DEPENDS cv_bridge message_generation roscpp rospy std_msgs
+   CATKIN_DEPENDS roscpp std_msgs message_runtime
 #  DEPENDS system_lib
+   DEPENDS Eigen
 )
 
 ###########
@@ -217,4 +224,5 @@ target_link_libraries(getting_waypoints ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} 
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
+
 

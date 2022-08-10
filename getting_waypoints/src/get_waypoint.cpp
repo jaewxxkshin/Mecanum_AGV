@@ -6,6 +6,17 @@ using namespace std;
 // select line which we want to tracking(by color) - demo [HW]
 int color = 1;
 
+// To subscribe t265 information [W]
+// ---------------------------------------------------------------------
+void pos_v_2_Callback(const geometry_msgs::Vector3& msg);
+void rot_v_2_Callback(const geometry_msgs::Quaternion& msg);
+// void t265Odom_v_2_Callback(const nav_msgs::Odometry::ConstPtr& msg);
+
+geometry_msgs::Vector3 pos_v_2;
+geometry_msgs::Quaternion rot_v_2;
+// Eigen::Vector3d cam_att_v_2;
+// ---------------------------------------------------------------------
+
 int main(int argc, char **argv)
 {
     ros::init(argc, argv, "ros_realsense_opencv_tutorial");
@@ -13,8 +24,13 @@ int main(int argc, char **argv)
 
     // ROS Publisher
     ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
-    ros::Publisher waypoints_set = nh.advertise<std_msgs::Float32MultiArray>("waypoints_set", wp_num);
-          
+    ros::Publisher waypoints_r_x = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x", wp_num);
+    ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);      
+    // ROS Subscriber [W]
+    ros::Subscriber d435_pos_v_2 = nh.subscribe("/d435_pos",5,pos_v_2_Callback);
+    ros::Subscriber d435_rot_v_2 = nh.subscribe("/d435_rot",5,rot_v_2_Callback);
+    // ros::Subscriber t265_odom_v_2 = nh.subscribe("/camera/odom/sample",5,t265Odom_v_2_Callback);
+    
     // get camera info
     rs2::pipeline pipe;
     rs2::config cfg;
@@ -44,7 +60,11 @@ int main(int argc, char **argv)
     {   
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
-        
+        float x_ic = pos_v_2.x;
+        float y_ic = pos_v_2.y;
+        float cos_ic = cos(rot_v_2.z);
+        float sin_ic = sin(rot_v_2.z);
+        //ROS_INFO("cout - [x: %f  y:%f  c:%f s:%f]",x_ic, y_ic, cos_ic, sin_ic);
         // Image generation variation[W]
         Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
 
@@ -195,48 +215,53 @@ int main(int argc, char **argv)
         // get the source of drawing straight line [JH]
         upper_x = int(-vx/vy*(top_y-converted_y)+converted_x);
         lower_x = int(-vx/vy*(-1*converted_y) + converted_x);
-    
-        // waypoint visualization [W]
-        if(top_y > corner_threshold) // straight
-        {
-            for(int i=0; i<wp_num; i++)
-            {
-                wp_y.push_back(top_y/wp_num*(i+1));
-                wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
-            }
-            // when straight line, false
-            corner_flag.data = false;
-    
-            // visualization representive line [W]
-            line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
-        }
 
-        else if(top_y<corner_threshold) // rotation
+        // To avoid core dumped [W]
+        set_array(wp_r_x, wp_num);
+        set_array(wp_r_y, wp_num);
+        // waypoint visualization [W]
+        // if(top_y > corner_threshold) // straight
+        // {
+        for(int i=0; i<wp_num; i++)
         {
-            for(int i=0; i<wp_num; i++) // circle waypoint y
-            {
-                float theta = (i+1) * wp_num * PI / 180;
-                wp_y.push_back(top_y * sin(theta));
-            }
-            if (vy/vx > 0) // turn left - waypoint x
-            {
-                for(int i=0; i<wp_num; i++)
-                {
-                    float theta = (i+1)*wp_num * PI / 180;
-                    wp_x.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
-                }
-            } 
-            else if (vy/vx < 0) // turn right - waypoint x
-            {
-                for(int i=0; i<wp_num; i++)
-                {
-                    float theta = (i+1)*wp_num * PI / 180;
-                    wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
-                }
-            }
-            // when corner, true
-            corner_flag.data= true;
+            wp_y.push_back(top_y/wp_num*(i+1));
+            wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
+            wp_r_x.data[i] = x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+            wp_r_y.data[i] = y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
         }
+        // when straight line, false
+        corner_flag.data = false;
+
+        // visualization representive line [W]
+        line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
+        // }
+
+        // else if(top_y<corner_threshold) // rotation
+        // {
+        //     for(int i=0; i<wp_num; i++) // circle waypoint y
+        //     {
+        //         float theta = (i+1) * wp_num * PI / 180;
+        //         wp_y.push_back(top_y * sin(theta));
+        //     }
+        //     if (vy/vx > 0) // turn left - waypoint x
+        //     {
+        //         for(int i=0; i<wp_num; i++)
+        //         {
+        //             float theta = (i+1)*wp_num * PI / 180;
+        //             wp_x.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
+        //         }
+        //     } 
+        //     else if (vy/vx < 0) // turn right - waypoint x
+        //     {
+        //         for(int i=0; i<wp_num; i++)
+        //         {
+        //             float theta = (i+1)*wp_num * PI / 180;
+        //             wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
+        //         }
+        //     }
+            // when corner, true
+            // corner_flag.data= true;
+        // }
 
         for(int i=0; i<wp_num; i++)
         {
@@ -245,17 +270,18 @@ int main(int argc, char **argv)
         
         // to pubish each waypoint [W]
         //-----------------------------------
-        set_array(wp_set, wp_num*2);
         
-        for(int i = 0; i < wp_num; i++)      
-        {
-            wp_set.data[2*i] = wp_x[i]*distance_of_pixel;
-            wp_set.data[2*i+1] = wp_y[i]*distance_of_pixel;
-        }
+        
+        // for(int i = 0; i < wp_num; i++)      
+        // {
+        //     wp_set.data[2*i] = wp_x[i]*distance_of_pixel;
+        //     wp_set.data[2*i+1] = wp_y[i]*distance_of_pixel;
+        // }
 
         // publish corner flag & waypoint(x1,y1,x2,y2,...)
         corner_decision.publish(corner_flag);
-        waypoints_set.publish(wp_set);
+        waypoints_r_x.publish(wp_r_x);
+        waypoints_r_y.publish(wp_r_y);
 
         // //-----------------------------------
         
@@ -276,3 +302,29 @@ int main(int argc, char **argv)
     }
     return 0;
 }
+void pos_v_2_Callback(const geometry_msgs::Vector3& msg){
+	pos_v_2.x=msg.x;
+	pos_v_2.y=msg.y;
+	pos_v_2.z=-msg.z;
+	//ROS_INFO("Translation - [x: %f  y:%f  z:%f]",pos_v_2.x, pos_v_2.y, pos_v_2.z);
+}
+
+void rot_v_2_Callback(const geometry_msgs::Quaternion& msg)
+{
+	rot_v_2.x=msg.x;
+	rot_v_2.y=msg.y;
+	rot_v_2.z=msg.z;
+	rot_v_2.w=msg.w;
+    //ROS_INFO("Rotation - [1: %f  2:%f  3:%f]",rot_v_2.x, rot_v_2.y, rot_v_2.z);
+}
+
+// void t265Odom_v_2_Callback(const nav_msgs::Odometry::ConstPtr& msg)
+// {
+// 	// t265_lin_vel=msg->twist.twist.linear;
+// 	// t265_ang_vel=msg->twist.twist.angular;
+// 	// t265_quat=msg->pose.pose.orientation;
+// 	tf::Quaternion quat_v_2;
+// 	tf::quaternionMsgToTF(rot_v_2,quat_v_2);
+//     tf::Matrix3x3(quat_v_2).getRPY(cam_att_v_2(0),cam_att_v_2(1),cam_att_v_2(2));
+// 	ROS_INFO("Altitude - [z:%f]", cam_att_v_2(2));
+// }

@@ -13,12 +13,28 @@
 #include <unistd.h> // for sleep [JH]
 #include <std_msgs/Bool.h>
 
+// version_2 [W]
+// ---------------------------------------------
+#include "tf/transform_datatypes.h"
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_msgs/TFMessage.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+#include <geometry_msgs/TransformStamped.h>
+#include <geometry_msgs/Transform.h>
+
+#include "nav_msgs/Odometry.h"
+#include <eigen3/Eigen/Core>
+#include <eigen3/Eigen/Dense>
+
+// ---------------------------------------------
 
 // for test to publish way points [W]
 // std_msgs::Float32MultiArray test_x;
 // std_msgs::Float32MultiArray test_y;
 
-std_msgs::Float32MultiArray wp_set;
+std_msgs::Float32MultiArray wp_r_x;
+std_msgs::Float32MultiArray wp_r_y;
 std_msgs::Bool corner_flag;
 
 // constant value[JH]
