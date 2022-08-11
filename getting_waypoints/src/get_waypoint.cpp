@@ -1,10 +1,11 @@
 #include "get_waypoint.hpp"
+#include <time.h>
 
 using namespace cv;
 using namespace std;
 
 // select line which we want to tracking(by color) - demo [HW]
-int color = 1;
+int color = 2;
 
 // To subscribe t265 information [W]
 // ---------------------------------------------------------------------
@@ -19,6 +20,11 @@ geometry_msgs::Quaternion rot_v_2;
 
 int main(int argc, char **argv)
 {
+    time_t timer;
+    struct tm* t;
+
+    // std::cout << "localtime : " << t << std::endl;
+
     ros::init(argc, argv, "ros_realsense_opencv_tutorial");
     ros::NodeHandle nh;
 
@@ -58,6 +64,10 @@ int main(int argc, char **argv)
 
     while(ros::ok())
     {   
+        timer= time(NULL);
+        t= localtime(&timer);
+        t= localtime(&timer);
+
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
         float x_ic = pos_v_2.x;
@@ -258,7 +268,8 @@ int main(int argc, char **argv)
         //             float theta = (i+1)*wp_num * PI / 180;
         //             wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
         //         }
-        //     }
+        //     }    timer= time(NULL);
+    t= localtime(&timer);
             // when corner, true
             // corner_flag.data= true;
         // }
@@ -294,8 +305,13 @@ int main(int argc, char **argv)
         vec_delete(bottom_x);
         vec_delete_p(contours_sum);
         //----------------------------
+       
+        // To save image 
+        char filename[200];
+        sprintf(filename, "%d.%d.%d.png",t->tm_hour, t->tm_min, t->tm_sec);
 
-        imwrite("res.png", res);     
+
+        imwrite(filename,res );     
         imwrite("mask.png", mask);     
 
         ros::spinOnce();        

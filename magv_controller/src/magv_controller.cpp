@@ -30,7 +30,9 @@ geometry_msgs::Vector3 t265_ang_vel;
 
 std_msgs::Float32MultiArray wp_set_sub;
 std_msgs::Float32MultiArray arr_psi;
-
+// data for rosbag [JH & HW]
+std_msgs::Float32MultiArray arr_cam_att_2;
+std_msgs::Float32MultiArray arr_atan2;
 std::vector<float> wp_r_x;
 std::vector<float> wp_r_y;
 
@@ -73,8 +75,14 @@ int main(int argc, char **argv)
 
 	wp_set_sub.data.resize(wp_num*2);
 	arr_psi.data.resize(1);
+	// data for rosbag [JH & HW]
+	arr_cam_att_2.data.resize(1);
+	arr_atan2.data.resize(1);
 
 	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
+	// data for rosbag [JH & HW]
+	ros::Publisher cam_att_2_pub = nh.advertise<std_msgs::Float32MultiArray>("cam_att_2_pub", 100);
+	ros::Publisher atan2_pub = nh.advertise<std_msgs::Float32MultiArray>("atan2_pub", 100);
 
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);//ros::TransportHints().tcpNoDelay());
@@ -88,7 +96,8 @@ int main(int argc, char **argv)
 	while (ros::ok()) 
 	{
 		pub_psi.publish(arr_psi);
-	
+		atan2_pub.publish(arr_atan2);
+		cam_att_2_pub.publish(arr_cam_att_2);
 		ros::spinOnce();
 		loop_rate.sleep();
 	}
@@ -180,7 +189,8 @@ void pos_ctrl()
 	des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))- (cam_att(2)+M_PI/2);
 	// std::cout << " atan2 : " << atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx])) << std::endl;
 	// std::cout << " cam_att(2) + M_PI/2 : " <<  (cam_att(2)+M_PI/2) <<std::endl;
-
+	arr_cam_att_2.data[0]=cam_att(2);
+	arr_atan2.data[0]=atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]));
 	std::cout << " des_ psi : " << des_psi << std::endl;
 	arr_psi.data[0] = des_psi;
 	// R = L / tan(e_psi);

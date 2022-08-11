@@ -37,6 +37,10 @@ std_msgs::Float32MultiArray wp_r_x;
 std_msgs::Float32MultiArray wp_r_y;
 std_msgs::Bool corner_flag;
 
+// data for rosbag [JH & HW]
+std_msgs::Float32MultiArray cam_att_2_pub;
+std_msgs::Float32MultiArray atan_pub;
+
 // constant value[JH]
 #define left_width 314
 #define right_width 884 
