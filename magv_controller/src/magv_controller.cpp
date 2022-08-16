@@ -137,7 +137,7 @@ void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 	{
 		wp_r_y.push_back(array->data[i]);	
 	}
-	std::cout << "test: " << wp_r_y[9] << std::endl;
+	//std::cout << "test: " << wp_r_y[9] << std::endl;
 }
 
 
@@ -183,15 +183,15 @@ void vec_delete_float(std::vector<float> &vec)
 
 void pos_ctrl()
 {
-	if( distance < threshold) idx += 1;
+	//if( distance < threshold) //idx += 1;
 
-	distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));
-	des_psi = atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]))- (cam_att(2)+M_PI/2);
+	//distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));
+	des_psi = atan2((wp_r_y[1]-wp_r_y[0]),(wp_r_x[1]-wp_r_x[0]))- (rot.z+M_PI/2);
 	// std::cout << " atan2 : " << atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx])) << std::endl;
 	// std::cout << " cam_att(2) + M_PI/2 : " <<  (cam_att(2)+M_PI/2) <<std::endl;
-	arr_cam_att_2.data[0]=cam_att(2);
-	arr_atan2.data[0]=atan2((wp_r_y[idx+1]-wp_r_y[idx]),(wp_r_x[idx+1]-wp_r_x[idx]));
-	std::cout << " des_ psi : " << des_psi << std::endl;
+	arr_cam_att_2.data[0] = rot.z;
+	arr_atan2.data[0] = atan2((wp_r_y[1]-wp_r_y[0]),(wp_r_x[1]-wp_r_x[0]));
+	//std::cout << " des_ psi : " << des_psi << std::endl;
 	arr_psi.data[0] = des_psi;
 	// R = L / tan(e_psi);
 	

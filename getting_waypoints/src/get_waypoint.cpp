@@ -72,10 +72,11 @@ int main(int argc, char **argv)
         color_frame = frames.get_color_frame();
         float x_ic = pos_v_2.x;
         float y_ic = pos_v_2.y;
-        float cos_ic = cos(rot_v_2.z);
-        float sin_ic = sin(rot_v_2.z);
-        //ROS_INFO("cout - [x: %f  y:%f  c:%f s:%f]",x_ic, y_ic, cos_ic, sin_ic);
-        // Image generation variation[W]
+        float cos_ic = 0;
+        float sin_ic = 0;
+        
+
+        
         Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
 
         Mat perspective_mat = getPerspectiveTransform(src_p, dst_p);
@@ -232,12 +233,30 @@ int main(int argc, char **argv)
         // waypoint visualization [W]
         // if(top_y > corner_threshold) // straight
         // {
+
+        float wp_theta = M_PI/2 - abs(atan(-vy/vx));
+        std::cout << "atan2 : " << abs(atan(-vy/vx)) << "wp_theta: " << wp_theta << std::endl;
+        
+        if(vy/vx < 0)
+        {
+            cos_ic = cos(wp_theta);
+            sin_ic = sin(wp_theta);
+        }
+        else
+        {
+            cos_ic = cos(-wp_theta);
+            sin_ic = sin(-wp_theta);
+        }
+        
+     
+        //ROS_INFO("cout - [x: %f  y:%f  c:%f s:%f]",x_ic, y_ic, cos_ic, sin_ic);
+        
         for(int i=0; i<wp_num; i++)
         {
             wp_y.push_back(top_y/wp_num*(i+1));
             wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
-            wp_r_x.data[i] = x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-            wp_r_y.data[i] = y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+            wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+            wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
         }
         // when straight line, false
         corner_flag.data = false;
@@ -311,7 +330,8 @@ int main(int argc, char **argv)
         sprintf(filename, "%d.%d.%d.png",t->tm_hour, t->tm_min, t->tm_sec);
 
 
-        imwrite(filename,res );     
+        //imwrite(filename,res );
+        imwrite("res.png", res);     
         imwrite("mask.png", mask);     
 
         ros::spinOnce();        
