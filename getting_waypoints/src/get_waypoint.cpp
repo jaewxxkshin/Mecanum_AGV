@@ -31,7 +31,8 @@ int main(int argc, char **argv)
     // ROS Publisher
     ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
     ros::Publisher waypoints_r_x = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x", wp_num);
-    ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);      
+    ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);
+    ros::Publisher desired_psi = nh.advertise<std_msgs::Float32>("des_psi_pub", 1000);        
     // ROS Subscriber [W]
     ros::Subscriber d435_pos_v_2 = nh.subscribe("/d435_pos",5,pos_v_2_Callback);
     ros::Subscriber d435_rot_v_2 = nh.subscribe("/d435_rot",5,rot_v_2_Callback);
@@ -233,21 +234,19 @@ int main(int argc, char **argv)
         // waypoint visualization [W]
         // if(top_y > corner_threshold) // straight
         // {
-
+            
+        //std::cout << "gradient : " << -vy/vx <<std::endl;    
         float wp_theta = M_PI/2 - abs(atan(-vy/vx));
-        std::cout << "atan2 : " << abs(atan(-vy/vx)) << "wp_theta: " << wp_theta << std::endl;
         
-        if(vy/vx < 0)
-        {
-            cos_ic = cos(wp_theta);
-            sin_ic = sin(wp_theta);
-        }
-        else
-        {
-            cos_ic = cos(-wp_theta);
-            sin_ic = sin(-wp_theta);
-        }
         
+        if(-vy/vx > 0)
+        {
+            wp_theta *= -1.0;
+        }
+
+        //std::cout << "wp_theta: " << wp_theta << std::endl;
+
+        des_psi_pub.data = wp_theta;
      
         //ROS_INFO("cout - [x: %f  y:%f  c:%f s:%f]",x_ic, y_ic, cos_ic, sin_ic);
         
@@ -255,8 +254,8 @@ int main(int argc, char **argv)
         {
             wp_y.push_back(top_y/wp_num*(i+1));
             wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
-            wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-            wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+            wp_r_x.data[i] =  x_ic + cos(wp_theta) * wp_x[i] * distance_of_pixel - sin(wp_theta) * wp_y[i] * distance_of_pixel;
+            wp_r_y.data[i] =  y_ic + sin(wp_theta) * wp_x[i] * distance_of_pixel + cos(wp_theta) * wp_y[i] * distance_of_pixel;
         }
         // when straight line, false
         corner_flag.data = false;
@@ -312,6 +311,7 @@ int main(int argc, char **argv)
         corner_decision.publish(corner_flag);
         waypoints_r_x.publish(wp_r_x);
         waypoints_r_y.publish(wp_r_y);
+        desired_psi.publish(des_psi_pub);
 
         // //-----------------------------------
         
@@ -330,8 +330,8 @@ int main(int argc, char **argv)
         sprintf(filename, "%d.%d.%d.png",t->tm_hour, t->tm_min, t->tm_sec);
 
 
-        //imwrite(filename,res );
-        imwrite("res.png", res);     
+        imwrite(filename,res );
+        //imwrite("res.png", res);     
         imwrite("mask.png", mask);     
 
         ros::spinOnce();        

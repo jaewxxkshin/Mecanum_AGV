@@ -8,6 +8,7 @@
 #include <vector>
 #include <math.h>
 #include <numeric>
+#include <std_msgs/Float32.h>
 #include <std_msgs/Float32MultiArray.h>
 #include <time.h>
 #include <unistd.h> // for sleep [JH]
@@ -35,6 +36,7 @@
 
 std_msgs::Float32MultiArray wp_r_x;
 std_msgs::Float32MultiArray wp_r_y;
+std_msgs::Float32 des_psi_pub;
 std_msgs::Bool corner_flag;
 
 // data for rosbag [JH & HW]
