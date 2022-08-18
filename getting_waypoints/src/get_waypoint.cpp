@@ -9,22 +9,16 @@ int color = 2;
 
 // To subscribe t265 information [W]
 // ---------------------------------------------------------------------
-void pos_v_2_Callback(const geometry_msgs::Vector3& msg);
-void rot_v_2_Callback(const geometry_msgs::Quaternion& msg);
-// void t265Odom_v_2_Callback(const nav_msgs::Odometry::ConstPtr& msg);
-
-geometry_msgs::Vector3 pos_v_2;
-geometry_msgs::Quaternion rot_v_2;
-// Eigen::Vector3d cam_att_v_2;
+void pos_Callback(const geometry_msgs::Vector3& msg);
+void rot_Callback(const geometry_msgs::Quaternion& msg);
 // ---------------------------------------------------------------------
+
 
 int main(int argc, char **argv)
 {
     time_t timer;
     struct tm* t;
-
-    // std::cout << "localtime : " << t << std::endl;
-
+ 
     ros::init(argc, argv, "ros_realsense_opencv_tutorial");
     ros::NodeHandle nh;
 
@@ -32,11 +26,12 @@ int main(int argc, char **argv)
     ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
     ros::Publisher waypoints_r_x = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x", wp_num);
     ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);
-    ros::Publisher desired_psi = nh.advertise<std_msgs::Float32>("des_psi_pub", 1000);        
+    ros::Publisher d435_origin_pub = nh.advertise<std_msgs::Float32MultiArray>("d435_origin", wp_num);
+    
     // ROS Subscriber [W]
-    ros::Subscriber d435_pos_v_2 = nh.subscribe("/d435_pos",5,pos_v_2_Callback);
-    ros::Subscriber d435_rot_v_2 = nh.subscribe("/d435_rot",5,rot_v_2_Callback);
-    // ros::Subscriber t265_odom_v_2 = nh.subscribe("/camera/odom/sample",5,t265Odom_v_2_Callback);
+    ros::Subscriber d435_pos = nh.subscribe("/d435_pos",5,pos_Callback);
+    ros::Subscriber d435_rot = nh.subscribe("/d435_rot",5,rot_Callback);
+    
     
     // get camera info
     rs2::pipeline pipe;
@@ -71,33 +66,36 @@ int main(int argc, char **argv)
 
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
-        float x_ic = pos_v_2.x;
-        float y_ic = pos_v_2.y;
-        float cos_ic = 0;
-        float sin_ic = 0;
-        
 
-        
+        // To avoid core dumped [W]
+        set_array(wp_r_x, wp_num);
+        set_array(wp_r_y, wp_num); 
+        set_array(d435_origin, 2);
+
+        // to calculate global waipoint's coordinate [W]
+        x_ic = pos.x;
+        y_ic = pos.y;
+        d435_origin.data[0] = x_ic;
+        d435_origin.data[1] = y_ic;
+        cos_ic = cos(t265_att.z);
+        sin_ic = sin(t265_att.z);
+              
         Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
-
         Mat perspective_mat = getPerspectiveTransform(src_p, dst_p);
 
-        // variations [W]
-        //------------------------------------------------------------------------------------------
-        
         // perspective matrix [W]
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
-        //------------------------------------------------------------------------------------------        
+              
         // recognize image informations[W]
         width = dst.cols, height = dst.rows;
         nPoints = width * height;
+
         // initialization (create)[W]
         points.create(nPoints, 1, CV_32FC3);        // input data[W]
         centers.create(cluster_k, 1, points.type());        // results of k means[W]
         res.create(height, width, dst.type());      // results images[W]
         
         // data transform to fitting kmeasn algortihm[W]
-        // there's no way to save computing time????[W]
         for(y = 0, n = 0; y < height; y++)
         {
             for(x = 0; x < width; x++, n++)
@@ -108,14 +106,11 @@ int main(int argc, char **argv)
             } 
         }
         
-        
-
         // k-means clustering[W]
         kmeans(points, cluster_k, labels, TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0), 
         20, KMEANS_PP_CENTERS, centers);
 
         // visualization of result of kmeans algorithm[W]
-        // if We don't need to visualization ...??[W]
         // test v_ 1 2022.07.12 [W]
         //---------------------------------------------------------
         for(y = 0, n = 0; y < height; y++)
@@ -228,35 +223,14 @@ int main(int argc, char **argv)
         upper_x = int(-vx/vy*(top_y-converted_y)+converted_x);
         lower_x = int(-vx/vy*(-1*converted_y) + converted_x);
 
-        // To avoid core dumped [W]
-        set_array(wp_r_x, wp_num);
-        set_array(wp_r_y, wp_num);
-        // waypoint visualization [W]
-        // if(top_y > corner_threshold) // straight
-        // {
-            
-        //std::cout << "gradient : " << -vy/vx <<std::endl;    
-        float wp_theta = M_PI/2 - abs(atan(-vy/vx));
-        
-        
-        if(-vy/vx > 0)
-        {
-            wp_theta *= -1.0;
-        }
-
-        //std::cout << "wp_theta: " << wp_theta << std::endl;
-
-        des_psi_pub.data = wp_theta;
-     
-        //ROS_INFO("cout - [x: %f  y:%f  c:%f s:%f]",x_ic, y_ic, cos_ic, sin_ic);
-        
         for(int i=0; i<wp_num; i++)
         {
             wp_y.push_back(top_y/wp_num*(i+1));
             wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
-            wp_r_x.data[i] =  x_ic + cos(wp_theta) * wp_x[i] * distance_of_pixel - sin(wp_theta) * wp_y[i] * distance_of_pixel;
-            wp_r_y.data[i] =  y_ic + sin(wp_theta) * wp_x[i] * distance_of_pixel + cos(wp_theta) * wp_y[i] * distance_of_pixel;
+            wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+            wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
         }
+
         // when straight line, false
         corner_flag.data = false;
 
@@ -287,7 +261,7 @@ int main(int argc, char **argv)
         //             wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
         //         }
         //     }    timer= time(NULL);
-    t= localtime(&timer);
+        t= localtime(&timer);
             // when corner, true
             // corner_flag.data= true;
         // }
@@ -296,24 +270,14 @@ int main(int argc, char **argv)
         {
             circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
         }
-        
-        // to pubish each waypoint [W]
-        //-----------------------------------
-        
-        
-        // for(int i = 0; i < wp_num; i++)      
-        // {
-        //     wp_set.data[2*i] = wp_x[i]*distance_of_pixel;
-        //     wp_set.data[2*i+1] = wp_y[i]*distance_of_pixel;
-        // }
 
-        // publish corner flag & waypoint(x1,y1,x2,y2,...)
+        // Publish topics [W]   
+        //-----------------------------------   
         corner_decision.publish(corner_flag);
         waypoints_r_x.publish(wp_r_x);
         waypoints_r_y.publish(wp_r_y);
-        desired_psi.publish(des_psi_pub);
-
-        // //-----------------------------------
+        d435_origin_pub.publish(d435_origin);
+        //-----------------------------------
         
         // vector initialization [W]
         //----------------------------
@@ -329,38 +293,31 @@ int main(int argc, char **argv)
         char filename[200];
         sprintf(filename, "%d.%d.%d.png",t->tm_hour, t->tm_min, t->tm_sec);
 
-
-        imwrite(filename,res );
-        //imwrite("res.png", res);     
+        // imwrite(filename,res );
+        imwrite("res.png", res);     
         imwrite("mask.png", mask);     
 
         ros::spinOnce();        
     }
     return 0;
 }
-void pos_v_2_Callback(const geometry_msgs::Vector3& msg){
-	pos_v_2.x=msg.x;
-	pos_v_2.y=msg.y;
-	pos_v_2.z=-msg.z;
-	//ROS_INFO("Translation - [x: %f  y:%f  z:%f]",pos_v_2.x, pos_v_2.y, pos_v_2.z);
+void pos_Callback(const geometry_msgs::Vector3& msg){
+	pos.x=msg.x;
+	pos.y=msg.y;
+	pos.z=-msg.z;
+	//ROS_INFO("Translation - [x: %f  y:%f  z:%f]",pos.x, pos.y, pos.z);
 }
 
-void rot_v_2_Callback(const geometry_msgs::Quaternion& msg)
+void rot_Callback(const geometry_msgs::Quaternion& msg)
 {
-	rot_v_2.x=msg.x;
-	rot_v_2.y=msg.y;
-	rot_v_2.z=msg.z;
-	rot_v_2.w=msg.w;
-    //ROS_INFO("Rotation - [1: %f  2:%f  3:%f]",rot_v_2.x, rot_v_2.y, rot_v_2.z);
+	rot.x=msg.x;
+	rot.y=msg.y;
+	rot.z=msg.z;
+	rot.w=msg.w;
+
+    tf::Quaternion quat;
+	tf::quaternionMsgToTF(rot,quat);
+	tf::Matrix3x3(quat).getRPY(t265_att.x,t265_att.y,t265_att.z);	
+    //ROS_INFO("Rotation - [1: %f  2:%f  3:%f]",rot.x, rot.y, rot.z);
 }
 
-// void t265Odom_v_2_Callback(const nav_msgs::Odometry::ConstPtr& msg)
-// {
-// 	// t265_lin_vel=msg->twist.twist.linear;
-// 	// t265_ang_vel=msg->twist.twist.angular;
-// 	// t265_quat=msg->pose.pose.orientation;
-// 	tf::Quaternion quat_v_2;
-// 	tf::quaternionMsgToTF(rot_v_2,quat_v_2);
-//     tf::Matrix3x3(quat_v_2).getRPY(cam_att_v_2(0),cam_att_v_2(1),cam_att_v_2(2));
-// 	ROS_INFO("Altitude - [z:%f]", cam_att_v_2(2));
-// }

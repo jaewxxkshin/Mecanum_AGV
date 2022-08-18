@@ -31,17 +31,15 @@
 // ---------------------------------------------
 
 // for test to publish way points [W]
-// std_msgs::Float32MultiArray test_x;
-// std_msgs::Float32MultiArray test_y;
-
 std_msgs::Float32MultiArray wp_r_x;
 std_msgs::Float32MultiArray wp_r_y;
-std_msgs::Float32 des_psi_pub;
+std_msgs::Float32MultiArray d435_origin;
 std_msgs::Bool corner_flag;
 
-// data for rosbag [JH & HW]
-std_msgs::Float32MultiArray cam_att_2_pub;
-std_msgs::Float32MultiArray atan_pub;
+// t265_pos & att [W]
+geometry_msgs::Vector3 pos;
+geometry_msgs::Quaternion rot;
+geometry_msgs::Vector3 t265_att;
 
 // constant value[JH]
 #define left_width 314
@@ -51,9 +49,13 @@ std_msgs::Float32MultiArray atan_pub;
 #define pixels 72
 #define PI 3.141592
 #define corner_threshold 700
-
 #define wp_num 10
 
+float x_ic = 0.;
+float y_ic = 0.;
+float cos_ic = 0.;
+float sin_ic = 0.;
+ 
 using namespace cv;
 using namespace std;
 
