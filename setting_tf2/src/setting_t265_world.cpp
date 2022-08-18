@@ -7,16 +7,16 @@
 #define PI 3.141592
 
 int main(int argc, char **argv){
-    ros::init(argc,argv,"setting_t265_world");
+    ros::init(argc,argv,"setting_d435_world");
 
     static tf2_ros::StaticTransformBroadcaster static_broadcaster;
     geometry_msgs::TransformStamped static_transformStamped;
 
     static_transformStamped.header.stamp = ros::Time::now();
     static_transformStamped.header.frame_id="camera_odom_frame";
-    static_transformStamped.child_frame_id="t265_world";
-    static_transformStamped.transform.translation.x=0;
-    static_transformStamped.transform.translation.y=0;
+    static_transformStamped.child_frame_id="d435_world";
+    static_transformStamped.transform.translation.x=0.0526;
+    static_transformStamped.transform.translation.y=0.00856;
     static_transformStamped.transform.translation.z=0;
     tf2::Quaternion quat;
     // rearrange origin of coordimate
