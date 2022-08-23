@@ -19,18 +19,16 @@
 
 #define const_vel 10
 #define L 0.43
-#define wp_num 5
-#define max_dist 0.3
+#define wp_num 10
 
 std_msgs::Float32MultiArray wp_set_sub;
-std_msgs::Float32MultiArray ros_bag;
-std_msgs::Int16 check_idx;
+std_msgs::Float32MultiArray arr_psi;
+std_msgs::Int16 idx_ros;
 
 geometry_msgs::Vector3 pos;
 geometry_msgs::Quaternion rot;
 geometry_msgs::Vector3 t265_ang_vel;
 geometry_msgs::Vector3 t265_att;
-
 
 std::vector<float> wp_r_x;
 std::vector<float> wp_r_y;
@@ -39,13 +37,11 @@ bool corner_flag = false;
 bool flag = 0;
 
 // control variable
-int p_psi = 100;
-int d_psi = 0;
+int p_psi = 5;
 double cmd_psi = 0;
 double distance = 1.;
 double threshold = 0.02; //need to change
 double freq = 30;//controller loop frequency
-int idx = 0;
 float err_psi = 0;
 float err_psi_1 = 0;
 float err_psi_2 = 0;
@@ -53,9 +49,12 @@ float err_psi_dot = 0;
 float des_psi_1 = 0;
 float des_psi_2 = 0;
 float cur_psi = 0;
-float k;
+float k = 0.1;
 float x_ic, y_ic = 0;
-
+// jh 
+double gradient =0.0;
+double temp_y = 0.0;
+int16_t idx = 0;
 // Function 
 // ----------------------------------------------------------------------------
 void rotCallback(const geometry_msgs::Quaternion& msg);
@@ -75,10 +74,10 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;  
 
 	wp_set_sub.data.resize(wp_num*2);
-	ros_bag.data.resize(6);
+	arr_psi.data.resize(1);
 
-	ros::Publisher data_pub = nh.advertise<std_msgs::Float32MultiArray>("ros_bag", 1000);
-	ros::Publisher idx_pub = nh.advertise<std_msgs::Int16>("check_idx", 1000);
+	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
+	ros::Publisher pub_idx = nh.advertise<std_msgs::Int16>("pub_idx", 1000);
 
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);
@@ -91,8 +90,8 @@ int main(int argc, char **argv)
 	
 	while (ros::ok()) 
 	{
-		data_pub.publish(ros_bag);
-		idx_pub.publish(check_idx);
+		pub_psi.publish(arr_psi);
+		pub_idx.publish(idx_ros);
 		ros::spinOnce();
 		loop_rate.sleep();
 	}
@@ -137,7 +136,7 @@ void originCallback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
 	x_ic = array->data[0];
 	y_ic = array->data[1];
-	// std::cout << "x : " << x_ic << "y : " << y_ic << std::endl;
+	std::cout << "x : " << x_ic << "y : " << y_ic << std::endl;
 }
 
 
@@ -159,67 +158,42 @@ void vec_delete_float(std::vector<float> &vec)
     std::vector<float>().swap(vec);
 }
 
-void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg){
-	// t265_lin_vel=msg->twist.twist.linear;
-	t265_ang_vel=msg->twist.twist.angular;
-	// std::cout << "t265_ang_vel : " << t265_ang_vel << std::endl;
-}
-
-
 void yaw_ctrl()
 {
-	// first appproach [W]
-	// distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));
-	// k = distance*(1/max_dist);
-	// if (k <= 0.19) k = 0;
-	// else if (k >= 0.7) k = 1; 
+	gradient = -(wp_r_x[1]-wp_r_x[0])/(wp_r_y[1]-wp_r_y[0]);
+	// f1(x)
+	double tmp_x = pos.x;
+	double tmp_y = pos.y;
+	temp_y = gradient *(tmp_x - wp_r_x[idx])+ wp_r_y[idx];
+	// f2(x)
+	// y2 = gradient *(pos.x - wp_r_x[index+1])+ wp_r_y[index+1];
 
-	// second approach [W]
-	distance = wp_r_x[idx]-pos.x;
-	k = abs(distance*(1/max_dist));
-
-	//std::cout << "distance : " << distance << std::endl;
-	//std::cout << "k value : " << k << std::endl;
-	//if( distance < threshold) idx += 1;
-	check_idx.data = idx;
-	cur_psi = t265_att.z + M_PI/2;
+	if ( tmp_y > temp_y) idx++;
+	std::cout << " index : " << idx << std::endl;
+	
+	
+	// cur_psi = t265_att.z + M_PI/2;
+	cur_psi = t265_att.z * 180 / M_PI + 90;
 
 	// Compare global robot origin to first waypoint [W]
-	des_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x));
-	if (des_psi_1 < 0) des_psi_1 += M_PI/2;
-	else if (des_psi_1 >= 0) des_psi_1 -= M_PI/2; 
-	
-	std::cout << "des_psi_1 : " << des_psi_1 << std::endl;
-	std::cout << "cur_psi_1 : " << cur_psi << std::endl;
-	std::cout << "err_psi_1 : " << err_psi_1 << std::endl;
+	des_psi_1 = atan2((wp_r_y[idx] - y_ic),(wp_r_x[idx] - x_ic)) * 180 / M_PI;
+	err_psi_1 = des_psi_1- cur_psi;
 
 	// Compare second waypoint to first waypoint [W]
-	des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx]));
+	des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI;
 	err_psi_2 = des_psi_2- cur_psi;
-	
-	err_psi_dot = p_psi*k* err_psi_1+ p_psi*(1-k)*err_psi_2 - d_psi*t265_ang_vel.z;
 
-	std::cout << " err_ psi_dot before filtering : " << err_psi_dot << std::endl;
-	if (err_psi_dot >= 255)
-		{
-			err_psi_dot = 255;
-		} 
-	else if(err_psi_dot <=-255)
-		{
-			err_psi_dot = -255;
-		}
+	err_psi = k*err_psi_1 + (1-k)*err_psi_2;
 
-	ros_bag.data[0] = distance;
-	ros_bag.data[1] = k;
-	ros_bag.data[2] = err_psi_1;
-	ros_bag.data[3] = err_psi_2;
-	ros_bag.data[4] = err_psi_dot;
-	ros_bag.data[5] = cur_psi;
-	//std::cout << " err_ psi1 : " << err_psi_1 << std::endl;
-	//std::cout << " err_ psi2 : " << err_psi_2 << std::endl;
-	// std::cout << " err_ psi_dot : " << err_psi_dot << std::endl;
-	// std::cout << "idx : " << idx << std::endl;
-	
+	// d gain : - d_psi*t265_ang_vel.z;
+	err_psi_dot = p_psi*err_psi ;
+
+	arr_psi.data[0] = err_psi_dot;
+
+	std::cout << " err_ psi1 : " << err_psi_1 << std::endl;
+	std::cout << " err_ psi2 : " << err_psi_2 << std::endl;
+	std::cout << " err_ psi_dot : " << err_psi_dot << std::endl;
+	idx_ros.data = idx;
 }
 
 void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision)
