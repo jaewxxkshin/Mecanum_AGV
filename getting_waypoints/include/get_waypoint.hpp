@@ -49,7 +49,7 @@ geometry_msgs::Vector3 t265_att;
 #define pixels 72
 #define PI 3.141592
 #define corner_threshold 700
-#define wp_num 5
+#define wp_num 10
 
 float x_ic = 0.;
 float y_ic = 0.;
