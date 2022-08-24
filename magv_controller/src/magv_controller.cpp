@@ -19,7 +19,7 @@
 
 #define const_vel 10
 #define L 0.43
-#define wp_num 10
+#define wp_num 5
 
 std_msgs::Float32MultiArray wp_set_sub;
 std_msgs::Float32MultiArray arr_psi;
@@ -48,6 +48,7 @@ float err_psi_2 = 0;
 float err_psi_dot = 0;
 float des_psi_1 = 0;
 float des_psi_2 = 0;
+float prev_psi = 0;
 float cur_psi = 0;
 float k = 0.1;
 float x_ic, y_ic = 0;
@@ -167,24 +168,33 @@ void yaw_ctrl()
 	temp_y = gradient *(tmp_x - wp_r_x[idx])+ wp_r_y[idx];
 	// f2(x)
 	// y2 = gradient *(pos.x - wp_r_x[index+1])+ wp_r_y[index+1];
-
+	
 	if ( tmp_y > temp_y) idx++;
+	
 	std::cout << " index : " << idx << std::endl;
 	
 	
 	// cur_psi = t265_att.z + M_PI/2;
 	cur_psi = t265_att.z * 180 / M_PI + 90;
+	if ( idx <wp_num-1 )
+	{
+		// Compare global robot origin to first waypoint [W]
+		err_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x)) * 180 / M_PI;
+		std::cout << "err_psi_1_before : " << err_psi_1 << std::endl;
+		if (err_psi_1 < 0) err_psi_1 += 90;
+		else if (err_psi_1 >= 0) err_psi_1 -= 90; 
+		std::cout << "err_psi_1 : " << err_psi_1 << std::endl;
+		std::cout << "t265_att_z : " << t265_att.z*180/M_PI  << std::endl;
 
-	// Compare global robot origin to first waypoint [W]
-	des_psi_1 = atan2((wp_r_y[idx] - y_ic),(wp_r_x[idx] - x_ic)) * 180 / M_PI;
-	err_psi_1 = des_psi_1- cur_psi;
+		// Compare second waypoint to first waypoint [W]
+		des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI;
+		err_psi_2 = des_psi_2- cur_psi;
 
-	// Compare second waypoint to first waypoint [W]
-	des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI;
-	err_psi_2 = des_psi_2- cur_psi;
+		err_psi = k*err_psi_1 + (1-k)*err_psi_2;
 
-	err_psi = k*err_psi_1 + (1-k)*err_psi_2;
-
+		if (idx==wp_num-2) prev_psi = err_psi;
+	}
+	else if (idx >=wp_num-1) err_psi = prev_psi;
 	// d gain : - d_psi*t265_ang_vel.z;
 	err_psi_dot = p_psi*err_psi ;
 
