@@ -20,10 +20,13 @@
 #define const_vel 10
 #define L 0.43
 #define wp_num 10
+#define max_dist 0.3
+#define max_k 1.0
 
 std_msgs::Float32MultiArray wp_set_sub;
 std_msgs::Float32MultiArray arr_psi;
 std_msgs::Int16 idx_ros;
+std_msgs::Float32 dist_ros;
 
 geometry_msgs::Vector3 pos;
 geometry_msgs::Quaternion rot;
@@ -50,7 +53,7 @@ float des_psi_1 = 0;
 float des_psi_2 = 0;
 float prev_psi = 0;
 float cur_psi = 0;
-float k = 0.1;
+float k = 0;
 float x_ic, y_ic = 0;
 // jh 
 double gradient =0.0;
@@ -79,6 +82,7 @@ int main(int argc, char **argv)
 
 	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
 	ros::Publisher pub_idx = nh.advertise<std_msgs::Int16>("pub_idx", 1000);
+	ros::Publisher pub_dist = nh.advertise<std_msgs::Float32>("pub_dist", 1000);
 
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);
@@ -93,6 +97,7 @@ int main(int argc, char **argv)
 	{
 		pub_psi.publish(arr_psi);
 		pub_idx.publish(idx_ros);
+		pub_dist.publish(dist_ros);
 		ros::spinOnce();
 		loop_rate.sleep();
 	}
@@ -182,17 +187,23 @@ void yaw_ctrl()
 		if (err_psi_1 < 0) err_psi_1 += 90;
 		else if (err_psi_1 >= 0) err_psi_1 -= 90; 
 		
-
 		// Compare second waypoint to first waypoint [W]
 		des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI;
 		err_psi_2 = des_psi_2- cur_psi;
 
+		distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));	
+		if ( distance > max_dist ) distance = max_dist;
+		dist_ros.data = distance;
+
+		k = distance*(max_k/max_dist);
+		// 0.1 -> ++0.1
 		err_psi = k*err_psi_1 + (1-k)*err_psi_2;
 
 		if (idx==wp_num-2) prev_psi = err_psi;
 	}
 	else if (idx >=wp_num-1) err_psi = prev_psi;
 	// d gain : - d_psi*t265_ang_vel.z;
+
 	err_psi_dot = p_psi*err_psi ;
 
 	arr_psi.data[0] = err_psi_dot;
