@@ -21,7 +21,7 @@
 #define L 0.43
 #define wp_num 10
 #define max_dist 0.3
-#define max_k 1.0
+#define max_k 0.1
 
 std_msgs::Float32MultiArray wp_set_sub;
 std_msgs::Float32MultiArray arr_psi;
@@ -174,7 +174,7 @@ void yaw_ctrl()
 	// f2(x)
 	// y2 = gradient *(pos.x - wp_r_x[index+1])+ wp_r_y[index+1];
 	
-	if (idx < wp_num) if ( tmp_y > temp_y) idx++;
+	if (idx < wp_num)	if ( tmp_y > temp_y) idx++;
 	
 	
 	// cur_psi = t265_att.z + M_PI/2;

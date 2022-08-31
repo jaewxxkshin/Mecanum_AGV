@@ -50,7 +50,7 @@ geometry_msgs::Vector3 t265_att;
 #define PI 3.141592
 #define corner_threshold 700
 #define wp_num 10
-
+#define hf 3
 float x_ic = 0.;
 float y_ic = 0.;
 float cos_ic = 0.;

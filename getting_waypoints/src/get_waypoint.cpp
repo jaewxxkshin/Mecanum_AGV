@@ -1,24 +1,35 @@
 #include "get_waypoint.hpp"
 #include <time.h>
+#include <ctime>
+#include <sys/time.h>
+#include <cstdio>
+#include <chrono>
 
 using namespace cv;
 using namespace std;
 
 // select line which we want to tracking(by color) - demo [HW]
 int color = 2;
+double duration = 0;
 
 // To subscribe t265 information [W]
 // ---------------------------------------------------------------------
 void pos_Callback(const geometry_msgs::Vector3& msg);
 void rot_Callback(const geometry_msgs::Quaternion& msg);
 // ---------------------------------------------------------------------
-
+auto k_time =std::chrono::high_resolution_clock::now();
+auto start =std::chrono::high_resolution_clock::now();
+auto pub_time =std::chrono::high_resolution_clock::now();
+// std::chrono::duration<double> delta_k;
+// std::chrono::duration<double> delta_t;
 
 int main(int argc, char **argv)
 {
     time_t timer;
     struct tm* t;
- 
+
+    struct timeval time_now{};
+    
     ros::init(argc, argv, "ros_realsense_opencv_tutorial");
     ros::NodeHandle nh;
 
@@ -47,10 +58,10 @@ int main(int argc, char **argv)
     src_p[2] = Point2f(855,474);
     src_p[3] = Point2f(940,720);
 
-    dst_p[0] = Point2f(604-268/2,720-268/2*3/2);
-    dst_p[1] = Point2f(604-268/2,720);
-    dst_p[2] = Point2f(604+268/2,720-268/2*3/2);
-    dst_p[3] = Point2f(604+268/2,720);
+    dst_p[0] = Point2f(604-268/hf,720-268/hf*3/2);
+    dst_p[1] = Point2f(604-268/hf,720);
+    dst_p[2] = Point2f(604+268/hf,720-268/hf*3/2);
+    dst_p[3] = Point2f(604+268/hf,720);
     
     // if it doesn't exist, it cause error [JH]
     for(int i=0; i < 50; i ++)
@@ -62,7 +73,11 @@ int main(int argc, char **argv)
     {   
         timer= time(NULL);
         t= localtime(&timer);
-        t= localtime(&timer);
+        gettimeofday(&time_now, nullptr);
+        start=std::chrono::high_resolution_clock::now();
+
+        // time_t prev_time = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
+        // std::cout<< "prev_time : " << prev_time << std::endl;
 
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
@@ -105,7 +120,9 @@ int main(int argc, char **argv)
                 points.at<Vec3f>(n)[2] = dst.at<Vec3b>(y, x)[2];
             } 
         }
+
         
+
         // k-means clustering[W]
         kmeans(points, cluster_k, labels, TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0), 
         20, KMEANS_PP_CENTERS, centers);
@@ -129,6 +146,12 @@ int main(int argc, char **argv)
                 res.at<Vec3b>(y, x)[2] = (uchar)iTemp;
             } 
         }
+        gettimeofday(&time_now, nullptr);
+        // time_t pres_time = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
+        // std::cout << "prev : " << prev_time << "pres : " << pres_time << std::endl; 
+        // std::cout << "how long take : " << double(pres_time-prev_time)/1000 << "sec" << std::endl;
+        k_time=std::chrono::high_resolution_clock::now();
+        
         // For remove BEV edge [HW]
         line(res, Point(0,279),Point(314,720),Scalar(0,0,0), 1); 
         line(res, Point(1280,67),Point(884,720),Scalar(0,0,0), 1);
@@ -279,6 +302,17 @@ int main(int argc, char **argv)
         d435_origin_pub.publish(d435_origin);
         //-----------------------------------
         
+        pub_time=std::chrono::high_resolution_clock::now();
+        // delta_k = k_time-start;
+        // delta_t = pub_time-start;
+        
+        // std::cout << "kmeans : " << delta_k << "|t end time : " << delta_t << std::endl;
+        std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
+        std:: cout <<"all process: "<< chrono::duration_cast<chrono::milliseconds>(pub_time - start).count() <<"ms"<< std::endl;
+        
+        // gettimeofday(&time_now, nullptr);
+        // time_t pub_time = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
+        // std::cout << "cass : " << double(pres_time-prev_time)/1000 << "|t cat : "<< double(pub_time - prev_time)/1000 << std::endl;
         // vector initialization [W]
         //----------------------------
         vec_delete(x_val);
