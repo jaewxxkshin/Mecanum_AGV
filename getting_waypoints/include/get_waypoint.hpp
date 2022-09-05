@@ -45,7 +45,7 @@ geometry_msgs::Vector3 t265_att;
 #define left_width 314
 #define right_width 884 
 #define img_height 720
-#define distance_of_pixel 0.00075  //m
+#define distance_of_pixel 0.00132  //m 
 #define pixels 72
 #define PI 3.141592
 #define corner_threshold 700

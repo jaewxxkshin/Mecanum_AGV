@@ -23,6 +23,8 @@ auto pub_time =std::chrono::high_resolution_clock::now();
 // std::chrono::duration<double> delta_k;
 // std::chrono::duration<double> delta_t;
 
+Mat K_Means(Mat Input, int K);
+
 int main(int argc, char **argv)
 {
     time_t timer;
@@ -101,51 +103,54 @@ int main(int argc, char **argv)
         // perspective matrix [W]
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
               
-        // recognize image informations[W]
-        width = dst.cols, height = dst.rows;
-        nPoints = width * height;
-
-        // initialization (create)[W]
-        points.create(nPoints, 1, CV_32FC3);        // input data[W]
-        centers.create(cluster_k, 1, points.type());        // results of k means[W]
-        res.create(height, width, dst.type());      // results images[W]
+        int Clusters = 8;
+	    Mat res = K_Means(dst, Clusters);
         
-        // data transform to fitting kmeasn algortihm[W]
-        for(y = 0, n = 0; y < height; y++)
-        {
-            for(x = 0; x < width; x++, n++)
-            {
-                points.at<Vec3f>(n)[0] = dst.at<Vec3b>(y, x)[0];
-                points.at<Vec3f>(n)[1] = dst.at<Vec3b>(y, x)[1];
-                points.at<Vec3f>(n)[2] = dst.at<Vec3b>(y, x)[2];
-            } 
-        }
+        // // recognize image informations[W]
+        // width = dst.cols, height = dst.rows;
+        // nPoints = width * height;
+
+        // // initialization (create)[W]
+        // points.create(nPoints, 1, CV_32FC3);        // input data[W]
+        // centers.create(cluster_k, 1, points.type());        // results of k means[W]
+        // res.create(height, width, dst.type());      // results images[W]
+        
+        // // data transform to fitting kmeasn algortihm[W]
+        // for(y = 0, n = 0; y < height; y++)
+        // {
+        //     for(x = 0; x < width; x++, n++)
+        //     {
+        //         points.at<Vec3f>(n)[0] = dst.at<Vec3b>(y, x)[0];
+        //         points.at<Vec3f>(n)[1] = dst.at<Vec3b>(y, x)[1];
+        //         points.at<Vec3f>(n)[2] = dst.at<Vec3b>(y, x)[2];
+        //     } 
+        // }
 
         
 
         // k-means clustering[W]
-        kmeans(points, cluster_k, labels, TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0), 
-        20, KMEANS_PP_CENTERS, centers);
+        // kmeans(points, cluster_k, labels, TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0), 
+        // 20, KMEANS_PP_CENTERS, centers);
 
         // visualization of result of kmeans algorithm[W]
         // test v_ 1 2022.07.12 [W]
         //---------------------------------------------------------
-        for(y = 0, n = 0; y < height; y++)
-        {
-            for(x = 0; x < width; x++, n++)
-            {
-                cIndex = labels.at<int>(n);
-                iTemp = cvRound(centers.at<Vec3f>(cIndex)[0]);
-                iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
-                res.at<Vec3b>(y, x)[0] = (uchar)iTemp;
-                iTemp = cvRound(centers.at<Vec3f>(cIndex)[1]);
-                iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
-                res.at<Vec3b>(y, x)[1] = (uchar)iTemp;
-                iTemp = cvRound(centers.at<Vec3f>(cIndex)[2]);
-                iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
-                res.at<Vec3b>(y, x)[2] = (uchar)iTemp;
-            } 
-        }
+        // for(y = 0, n = 0; y < height; y++)
+        // {
+        //     for(x = 0; x < width; x++, n++)
+        //     {
+        //         cIndex = labels.at<int>(n);
+        //         iTemp = cvRound(centers.at<Vec3f>(cIndex)[0]);
+        //         iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
+        //         res.at<Vec3b>(y, x)[0] = (uchar)iTemp;
+        //         iTemp = cvRound(centers.at<Vec3f>(cIndex)[1]);
+        //         iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
+        //         res.at<Vec3b>(y, x)[1] = (uchar)iTemp;
+        //         iTemp = cvRound(centers.at<Vec3f>(cIndex)[2]);
+        //         iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
+        //         res.at<Vec3b>(y, x)[2] = (uchar)iTemp;
+        //     } 
+        // }
         gettimeofday(&time_now, nullptr);
         // time_t pres_time = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
         // std::cout << "prev : " << prev_time << "pres : " << pres_time << std::endl; 
@@ -325,11 +330,15 @@ int main(int argc, char **argv)
        
         // To save image 
         char filename[200];
-        sprintf(filename, "%d.%d.%d.png",t->tm_hour, t->tm_min, t->tm_sec);
+        sprintf(filename, "res_%d.%d.png", t->tm_min, t->tm_sec);
 
-        // imwrite(filename,res );
-        imwrite("res.png", res);     
-        imwrite("mask.png", mask);     
+        char filename_mask[200];
+        sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
+
+        imwrite(filename,res);
+        imwrite(filename_mask,mask);
+        // imwrite("res.png", res);     
+        // imwrite("mask.png", mask);     
 
         ros::spinOnce();        
     }
@@ -355,3 +364,38 @@ void rot_Callback(const geometry_msgs::Quaternion& msg)
     //ROS_INFO("Rotation - [1: %f  2:%f  3:%f]",rot.x, rot.y, rot.z);
 }
 
+Mat K_Means(Mat Input, int K) {
+	Mat samples(Input.rows * Input.cols, Input.channels(), CV_32F);
+	for (int y = 0; y < Input.rows; y++)
+		for (int x = 0; x < Input.cols; x++)
+			for (int z = 0; z < Input.channels(); z++)
+				if (Input.channels() == 3) {
+					samples.at<float>(y + x * Input.rows, z) = Input.at<Vec3b>(y, x)[z];
+				}
+				else {
+					samples.at<float>(y + x * Input.rows, z) = Input.at<uchar>(y, x);
+				}
+
+	Mat labels;
+	int attempts = 5;
+	Mat centers;
+	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 10, 1.0), attempts, KMEANS_PP_CENTERS, centers);
+
+
+	Mat new_image(Input.size(), Input.type());
+	for (int y = 0; y < Input.rows; y++)
+		for (int x = 0; x < Input.cols; x++)
+		{
+			int cluster_idx = labels.at<int>(y + x * Input.rows, 0);
+			if (Input.channels()==3) {
+				for (int i = 0; i < Input.channels(); i++) {
+					new_image.at<Vec3b>(y, x)[i] = centers.at<float>(cluster_idx, i);
+				}
+			}
+			else {
+				new_image.at<uchar>(y, x) = centers.at<float>(cluster_idx, 0);
+			}
+		}
+	//imshow("clustered image", new_image);
+	return new_image;
+}
