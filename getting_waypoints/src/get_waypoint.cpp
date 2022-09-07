@@ -335,10 +335,10 @@ int main(int argc, char **argv)
         char filename_mask[200];
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
-        imwrite(filename,res);
-        imwrite(filename_mask,mask);
-        // imwrite("res.png", res);     
-        // imwrite("mask.png", mask);     
+        // imwrite(filename,res);
+        // imwrite(filename_mask,mask);
+        imwrite("res.png", res);     
+        imwrite("mask.png", mask);     
 
         ros::spinOnce();        
     }

@@ -18,10 +18,10 @@
 #include <std_msgs/Bool.h>
 
 #define const_vel 10
-#define L 0.43
+#define L 0.54
 #define wp_num 10
 #define max_dist 0.3
-#define max_k 0.1
+#define max_k 1.0
 
 std_msgs::Float32MultiArray wp_set_sub;
 std_msgs::Float32MultiArray arr_psi;
