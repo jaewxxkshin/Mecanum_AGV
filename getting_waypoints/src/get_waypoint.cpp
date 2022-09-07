@@ -1,8 +1,4 @@
 #include "get_waypoint.hpp"
-#include <time.h>
-#include <ctime>
-#include <sys/time.h>
-#include <cstdio>
 #include <chrono>
 
 using namespace cv;
@@ -10,7 +6,7 @@ using namespace std;
 
 // select line which we want to tracking(by color) - demo [HW]
 int color = 2;
-double duration = 0;
+
 
 // To subscribe t265 information [W]
 // ---------------------------------------------------------------------
@@ -20,17 +16,15 @@ void rot_Callback(const geometry_msgs::Quaternion& msg);
 auto k_time =std::chrono::high_resolution_clock::now();
 auto start =std::chrono::high_resolution_clock::now();
 auto pub_time =std::chrono::high_resolution_clock::now();
-// std::chrono::duration<double> delta_k;
-// std::chrono::duration<double> delta_t;
 
+// K means function declaration [W]
 Mat K_Means(Mat Input, int K);
 
 int main(int argc, char **argv)
 {
+    // save image for each name [W]
     time_t timer;
     struct tm* t;
-
-    struct timeval time_now{};
     
     ros::init(argc, argv, "ros_realsense_opencv_tutorial");
     ros::NodeHandle nh;
@@ -73,14 +67,10 @@ int main(int argc, char **argv)
 
     while(ros::ok())
     {   
-        timer= time(NULL);
+        // timer= time(NULL);
         t= localtime(&timer);
-        gettimeofday(&time_now, nullptr);
         start=std::chrono::high_resolution_clock::now();
-
-        // time_t prev_time = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
-        // std::cout<< "prev_time : " << prev_time << std::endl;
-
+        
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
 
@@ -104,57 +94,8 @@ int main(int argc, char **argv)
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
               
         int Clusters = 8;
-	    Mat res = K_Means(dst, Clusters);
-        
-        // // recognize image informations[W]
-        // width = dst.cols, height = dst.rows;
-        // nPoints = width * height;
+	    Mat res = K_Means(dst, Clusters);        
 
-        // // initialization (create)[W]
-        // points.create(nPoints, 1, CV_32FC3);        // input data[W]
-        // centers.create(cluster_k, 1, points.type());        // results of k means[W]
-        // res.create(height, width, dst.type());      // results images[W]
-        
-        // // data transform to fitting kmeasn algortihm[W]
-        // for(y = 0, n = 0; y < height; y++)
-        // {
-        //     for(x = 0; x < width; x++, n++)
-        //     {
-        //         points.at<Vec3f>(n)[0] = dst.at<Vec3b>(y, x)[0];
-        //         points.at<Vec3f>(n)[1] = dst.at<Vec3b>(y, x)[1];
-        //         points.at<Vec3f>(n)[2] = dst.at<Vec3b>(y, x)[2];
-        //     } 
-        // }
-
-        
-
-        // k-means clustering[W]
-        // kmeans(points, cluster_k, labels, TermCriteria(CV_TERMCRIT_EPS+CV_TERMCRIT_ITER, 10, 1.0), 
-        // 20, KMEANS_PP_CENTERS, centers);
-
-        // visualization of result of kmeans algorithm[W]
-        // test v_ 1 2022.07.12 [W]
-        //---------------------------------------------------------
-        // for(y = 0, n = 0; y < height; y++)
-        // {
-        //     for(x = 0; x < width; x++, n++)
-        //     {
-        //         cIndex = labels.at<int>(n);
-        //         iTemp = cvRound(centers.at<Vec3f>(cIndex)[0]);
-        //         iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
-        //         res.at<Vec3b>(y, x)[0] = (uchar)iTemp;
-        //         iTemp = cvRound(centers.at<Vec3f>(cIndex)[1]);
-        //         iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
-        //         res.at<Vec3b>(y, x)[1] = (uchar)iTemp;
-        //         iTemp = cvRound(centers.at<Vec3f>(cIndex)[2]);
-        //         iTemp = iTemp > 255 ? 255 : iTemp < 0 ? 0 : iTemp;
-        //         res.at<Vec3b>(y, x)[2] = (uchar)iTemp;
-        //     } 
-        // }
-        gettimeofday(&time_now, nullptr);
-        // time_t pres_time = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
-        // std::cout << "prev : " << prev_time << "pres : " << pres_time << std::endl; 
-        // std::cout << "how long take : " << double(pres_time-prev_time)/1000 << "sec" << std::endl;
         k_time=std::chrono::high_resolution_clock::now();
         
         // For remove BEV edge [HW]
@@ -180,6 +121,7 @@ int main(int argc, char **argv)
           bitwise_and(res, res, image, mask);
         }
         //========================================================================
+
         // find contours [HW]
         line(mask, Point(0,300),Point(300,720),Scalar(0,0,0), 1); 
     
@@ -187,6 +129,7 @@ int main(int argc, char **argv)
         drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
     
         imwrite("contour.png", image);  
+
         // get contour's y_val( every y ), x_val (every x ) [JH]
         for ( int i = 0; i < contours.size(); i++)
         {
@@ -221,9 +164,10 @@ int main(int argc, char **argv)
             }
         }
 
+        // corner [JH]
         // get avg of contour's bottom x value [JH]
-        int sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
-        int mean_bottom_x = sum_bottom_x/bottom_x.size();
+        // int sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
+        // int mean_bottom_x = sum_bottom_x/bottom_x.size();
         
         // if system detect more than 2 contours -> connect every contours [JH]
         for (int i=0; i < contours.size(); i++)
@@ -233,6 +177,7 @@ int main(int argc, char **argv)
                 contours_sum.push_back(contours[i][j]);
             }
         }
+
         // fitLine() function to detect representive line [W]
         fitLine(contours_sum, detected_line, CV_DIST_L2, 0, 0.01, 0.01);
         vx = detected_line[0];
@@ -289,7 +234,7 @@ int main(int argc, char **argv)
         //             wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
         //         }
         //     }    timer= time(NULL);
-        t= localtime(&timer);
+
             // when corner, true
             // corner_flag.data= true;
         // }
@@ -308,16 +253,10 @@ int main(int argc, char **argv)
         //-----------------------------------
         
         pub_time=std::chrono::high_resolution_clock::now();
-        // delta_k = k_time-start;
-        // delta_t = pub_time-start;
         
-        // std::cout << "kmeans : " << delta_k << "|t end time : " << delta_t << std::endl;
         std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
         std:: cout <<"all process: "<< chrono::duration_cast<chrono::milliseconds>(pub_time - start).count() <<"ms"<< std::endl;
         
-        // gettimeofday(&time_now, nullptr);
-        // time_t pub_time = (time_now.tv_sec * 1000) + (time_now.tv_usec / 1000);
-        // std::cout << "cass : " << double(pres_time-prev_time)/1000 << "|t cat : "<< double(pub_time - prev_time)/1000 << std::endl;
         // vector initialization [W]
         //----------------------------
         vec_delete(x_val);
@@ -335,8 +274,11 @@ int main(int argc, char **argv)
         char filename_mask[200];
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
+        // save image name depends on time [JH]
         // imwrite(filename,res);
         // imwrite(filename_mask,mask);
+
+        // save image [JH]
         imwrite("res.png", res);     
         imwrite("mask.png", mask);     
 
@@ -379,8 +321,8 @@ Mat K_Means(Mat Input, int K) {
 	Mat labels;
 	int attempts = 5;
 	Mat centers;
+    // Need to modify function arguement [W]
 	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 10, 1.0), attempts, KMEANS_PP_CENTERS, centers);
-
 
 	Mat new_image(Input.size(), Input.type());
 	for (int y = 0; y < Input.rows; y++)
@@ -396,6 +338,5 @@ Mat K_Means(Mat Input, int K) {
 				new_image.at<uchar>(y, x) = centers.at<float>(cluster_idx, 0);
 			}
 		}
-	//imshow("clustered image", new_image);
 	return new_image;
 }

@@ -42,20 +42,35 @@ geometry_msgs::Quaternion rot;
 geometry_msgs::Vector3 t265_att;
 
 // constant value[JH]
-#define left_width 314
-#define right_width 884 
+//if hf=2 -> 314,884 hf=3 -> 412,789
+#define left_width 412
+#define right_width 789
 #define img_height 720
 #define distance_of_pixel 0.00132  //m 
-#define pixels 72
 #define PI 3.141592
 #define corner_threshold 700
 #define wp_num 10
 #define hf 3
+
+// Image renewal flag variation [W]
+int countt = 0;
+
+// varaitons of kmeans algorithm
+int width, height,  x, y, n, nPoints, cIndex, iTemp;
+int upper_x, lower_x, top_y, converted_x, converted_y, right_x, left_x;
+
+const int cluster_k = 8;
+
+// variation after applying fitLine() function [W]
+float vx, vy;
+// x, y positions [W]
+float x_pos, y_pos;
+
 float x_ic = 0.;
 float y_ic = 0.;
 float cos_ic = 0.;
 float sin_ic = 0.;
- 
+
 using namespace cv;
 using namespace std;
 
@@ -126,9 +141,6 @@ Mat src, dst, image, mask, mask_sc, res, hsv, points, labels, centers;
 // point for warp
 Point2f src_p[4], dst_p[4];
 
-
-const int cluster_k = 8;
-
 // vector for finding contour [W]
 vector<Vec4i> linesP, hierachy;
 vector<vector<Point>> contours; 
@@ -146,16 +158,6 @@ vector<float> wp_y;
 vector<float> wp_x;
 vector<int> bottom_x;
 
-// variation after applying fitLine() function [W]
-float vx, vy;
-
-// varaitons of kmeans algorithm
-int width, height,  x, y, n, nPoints, cIndex, iTemp;
-int upper_x, lower_x, top_y, converted_x, converted_y, right_x, left_x;
-
-// x, y positions [W]
-float x_pos, y_pos;
-
 // -------------------------------------------
 // Red_HSV_range (based on dataset)
 Scalar lower_red = Scalar(160, 100, 100);
@@ -168,6 +170,4 @@ Scalar lower_blue = Scalar(90, 100, 100);
 Scalar upper_blue = Scalar(130, 255, 255);
 // -------------------------------------------
 
-// Image renewal flag variation [W]
-int countt = 0;
 

@@ -17,8 +17,7 @@
 #include "nav_msgs/Odometry.h"
 #include <std_msgs/Bool.h>
 
-#define const_vel 10
-#define L 0.54
+
 #define wp_num 10
 #define max_dist 0.3
 #define max_k 1.0
@@ -42,8 +41,7 @@ bool flag = 0;
 // control variable
 int p_psi = 5;
 double cmd_psi = 0;
-double distance = 1.;
-double threshold = 0.02; //need to change
+double distance = 0.;
 double freq = 30;//controller loop frequency
 float err_psi = 0;
 float err_psi_1 = 0;
