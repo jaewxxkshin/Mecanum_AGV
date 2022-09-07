@@ -7,7 +7,6 @@ using namespace std;
 // select line which we want to tracking(by color) - demo [HW]
 int color = 2;
 
-
 // To subscribe t265 information [W]
 // ---------------------------------------------------------------------
 void pos_Callback(const geometry_msgs::Vector3& msg);
