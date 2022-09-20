@@ -5,12 +5,13 @@ using namespace cv;
 using namespace std;
 
 // select line which we want to tracking(by color) - demo [HW]
-int color = 2;
+int color = 1;
 
 // To subscribe t265 information [W]
 // ---------------------------------------------------------------------
 void pos_Callback(const geometry_msgs::Vector3& msg);
 void rot_Callback(const geometry_msgs::Quaternion& msg);
+void idxCallback(const std_msgs::Int16& msg);
 // ---------------------------------------------------------------------
 auto k_time =std::chrono::high_resolution_clock::now();
 auto start =std::chrono::high_resolution_clock::now();
@@ -37,6 +38,7 @@ int main(int argc, char **argv)
     // ROS Subscriber [W]
     ros::Subscriber d435_pos = nh.subscribe("/d435_pos",5,pos_Callback);
     ros::Subscriber d435_rot = nh.subscribe("/d435_rot",5,rot_Callback);
+    ros::Subscriber test = nh.subscribe("/pub_idx",100,idxCallback);
     
     
     // get camera info
@@ -66,9 +68,10 @@ int main(int argc, char **argv)
 
     while(ros::ok())
     {   
-        // timer= time(NULL);
+        timer= time(NULL);
         t= localtime(&timer);
         start=std::chrono::high_resolution_clock::now();
+        
         
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
@@ -165,8 +168,8 @@ int main(int argc, char **argv)
 
         // corner [JH]
         // get avg of contour's bottom x value [JH]
-        // int sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
-        // int mean_bottom_x = sum_bottom_x/bottom_x.size();
+        int sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
+        int mean_bottom_x = sum_bottom_x/bottom_x.size();
         
         // if system detect more than 2 contours -> connect every contours [JH]
         for (int i=0; i < contours.size(); i++)
@@ -181,6 +184,9 @@ int main(int argc, char **argv)
         fitLine(contours_sum, detected_line, CV_DIST_L2, 0, 0.01, 0.01);
         vx = detected_line[0];
         vy = detected_line[1];
+        
+        gradient = vy/vx;
+
         x = int(detected_line[2]);
         y = int(detected_line[3]);
     
@@ -195,13 +201,7 @@ int main(int argc, char **argv)
         upper_x = int(-vx/vy*(top_y-converted_y)+converted_x);
         lower_x = int(-vx/vy*(-1*converted_y) + converted_x);
 
-        for(int i=0; i<wp_num; i++)
-        {
-            wp_y.push_back(top_y/wp_num*(i+1));
-            wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
-            wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-            wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
-        }
+
 
         // when straight line, false
         corner_flag.data = false;
@@ -209,33 +209,73 @@ int main(int argc, char **argv)
         // visualization representive line [W]
         line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
         // }
+        if ( abs(gradient) <= 1.5 ) corner_flag.data = true;
+        else if ( abs(gradient) > 1.5 ) corner_flag.data = false;
+        std::cout << "gradient :  " << gradient << "    corner flag : "<< corner_flag.data << std::endl;  
 
-        // else if(top_y<corner_threshold) // rotation
+
+        // if our's objective line is straight [W]
+        if (corner_flag.data == false)
+        {
+            for(int i=0; i<wp_num; i++)
+            {
+                wp_y.push_back(top_y/wp_num*(i+1));
+                wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
+                wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+                wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+            }
+            std::cout << "Sss" << std::endl;
+            // waypoints_r_x.publish(wp_r_x);
+            // waypoints_r_y.publish(wp_r_y);   
+        }
+        // if our's objective lins is radius [W]
+        else if(corner_flag.data == true) // rotation
+        {   
+            while(true)
+            {
+                for(int i=0; i<wp_num; i++) // circle waypoint y
+                {
+                    float theta = (i+1) * wp_num * PI / 180;
+                    wp_y.push_back(top_y * sin(theta));
+                }
+                if (vy/vx > 0) // turn left - waypoint x
+                {
+                    for(int i=0; i<wp_num; i++)
+                    {
+                        float theta = (i+1)*wp_num * PI / 180;
+                        wp_x.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
+                    }
+                } 
+                else if (vy/vx < 0) // turn right - waypoint x
+                {
+                    for(int i=0; i<wp_num; i++)
+                    {
+                        float theta = (i+1)*wp_num * PI / 180;
+                        wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
+                    }
+                }
+                for(int i=0; i<wp_num; i++)
+                {
+                    wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+                    wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+                }
+            // waypoints_r_x.publish(wp_r_x);
+            // waypoints_r_y.publish(wp_r_y);
+            // while(true)
+            // {
+            //     std::cout << "cdc" << std::endl;
+            //     if (idx >= 4) break;
+            // }
+                // ros::Subscriber test = nh.subscribe("/pub_idx",100,idxCallback);
+                std::cout << idx << std::endl;
+                if (idx >= 4) break;
+            }
+        }
+
+        // for(int i=0; i<wp_num; i++)
         // {
-        //     for(int i=0; i<wp_num; i++) // circle waypoint y
-        //     {
-        //         float theta = (i+1) * wp_num * PI / 180;
-        //         wp_y.push_back(top_y * sin(theta));
-        //     }
-        //     if (vy/vx > 0) // turn left - waypoint x
-        //     {
-        //         for(int i=0; i<wp_num; i++)
-        //         {
-        //             float theta = (i+1)*wp_num * PI / 180;
-        //             wp_x.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
-        //         }
-        //     } 
-        //     else if (vy/vx < 0) // turn right - waypoint x
-        //     {
-        //         for(int i=0; i<wp_num; i++)
-        //         {
-        //             float theta = (i+1)*wp_num * PI / 180;
-        //             wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
-        //         }
-        //     }    timer= time(NULL);
-
-            // when corner, true
-            // corner_flag.data= true;
+        //     wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+        //     wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
         // }
 
         for(int i=0; i<wp_num; i++)
@@ -253,8 +293,8 @@ int main(int argc, char **argv)
         
         pub_time=std::chrono::high_resolution_clock::now();
         
-        std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
-        std:: cout <<"all process: "<< chrono::duration_cast<chrono::milliseconds>(pub_time - start).count() <<"ms"<< std::endl;
+        // std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
+        // std:: cout <<"all process: "<< chrono::duration_cast<chrono::milliseconds>(pub_time - start).count() <<"ms"<< std::endl;
         
         // vector initialization [W]
         //----------------------------
@@ -274,8 +314,8 @@ int main(int argc, char **argv)
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
         // save image name depends on time [JH]
-        // imwrite(filename,res);
-        // imwrite(filename_mask,mask);
+        //imwrite(filename,res);
+        //imwrite(filename_mask,mask);
 
         // save image [JH]
         imwrite("res.png", res);     
@@ -285,12 +325,14 @@ int main(int argc, char **argv)
     }
     return 0;
 }
+
 void pos_Callback(const geometry_msgs::Vector3& msg){
 	pos.x=msg.x;
 	pos.y=msg.y;
 	pos.z=-msg.z;
 	//ROS_INFO("Translation - [x: %f  y:%f  z:%f]",pos.x, pos.y, pos.z);
 }
+
 
 void rot_Callback(const geometry_msgs::Quaternion& msg)
 {
@@ -303,6 +345,10 @@ void rot_Callback(const geometry_msgs::Quaternion& msg)
 	tf::quaternionMsgToTF(rot,quat);
 	tf::Matrix3x3(quat).getRPY(t265_att.x,t265_att.y,t265_att.z);	
     //ROS_INFO("Rotation - [1: %f  2:%f  3:%f]",rot.x, rot.y, rot.z);
+}
+void idxCallback(const std_msgs::Int16& msg)
+{
+    idx = msg.data;
 }
 
 Mat K_Means(Mat Input, int K) {

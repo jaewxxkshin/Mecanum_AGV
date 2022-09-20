@@ -13,6 +13,7 @@
 #include <time.h>
 #include <unistd.h> // for sleep [JH]
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int16.h>
 
 // version_2 [W]
 // ---------------------------------------------
@@ -52,6 +53,9 @@ geometry_msgs::Vector3 t265_att;
 #define wp_num 10
 #define hf 3
 
+int idx = 0;
+bool img_flag = true; 
+
 // Image renewal flag variation [W]
 int countt = 0;
 
@@ -65,6 +69,8 @@ const int cluster_k = 8;
 float vx, vy;
 // x, y positions [W]
 float x_pos, y_pos;
+// for fitline gradient [JH]
+float gradient;
 
 float x_ic = 0.;
 float y_ic = 0.;

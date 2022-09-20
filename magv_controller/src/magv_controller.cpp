@@ -37,6 +37,10 @@ std::vector<float> wp_r_y;
 
 bool corner_flag = false;
 bool flag = 0;
+//---------------------------[W]
+bool straight_mode = 1;
+//bool radius_mode = 0;
+//---------------------------
 
 // control variable
 int p_psi = 5;
@@ -116,10 +120,10 @@ void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
 	vec_delete_float(wp_r_x);
 	for (int i = 0; i < wp_num; i++) 
-	{
+		{
 		wp_r_x.push_back(array->data[i]);	
-	}
-
+		}
+	
 	flag = 1;
 
 	// idx will initialized when new waypoint is created
@@ -172,7 +176,7 @@ void yaw_ctrl()
 	// f2(x)
 	// y2 = gradient *(pos.x - wp_r_x[index+1])+ wp_r_y[index+1];
 	
-	if (idx < wp_num)	if ( tmp_y > temp_y) idx++;
+	if ( tmp_y > temp_y) idx++;
 	
 	
 	// cur_psi = t265_att.z + M_PI/2;
@@ -194,6 +198,7 @@ void yaw_ctrl()
 		dist_ros.data = distance;
 
 		k = distance*(max_k/max_dist);
+		if(fabs(k)>1) k = k/fabs(k);
 		// 0.1 -> ++0.1
 		err_psi = k*err_psi_1 + (1-k)*err_psi_2;
 
