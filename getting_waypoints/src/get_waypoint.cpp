@@ -33,6 +33,8 @@ int main(int argc, char **argv)
     ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
     ros::Publisher waypoints_r_x = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x", wp_num);
     ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);
+    ros::Publisher waypoints_r_x_c = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x_c", wp_num);
+    ros::Publisher waypoints_r_y_c = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y_c", wp_num);
     ros::Publisher d435_origin_pub = nh.advertise<std_msgs::Float32MultiArray>("d435_origin", wp_num);
     
     // ROS Subscriber [W]
@@ -79,6 +81,8 @@ int main(int argc, char **argv)
         // To avoid core dumped [W]
         set_array(wp_r_x, wp_num);
         set_array(wp_r_y, wp_num); 
+        set_array(wp_r_x_c, wp_num);
+        set_array(wp_r_y_c, wp_num);
         set_array(d435_origin, 2);
 
         // to calculate global waipoint's coordinate [W]
@@ -217,6 +221,7 @@ int main(int argc, char **argv)
         // if our's objective line is straight [W]
         if (corner_flag.data == false)
         {
+            
             for(int i=0; i<wp_num; i++)
             {
                 wp_y.push_back(top_y/wp_num*(i+1));
@@ -224,73 +229,60 @@ int main(int argc, char **argv)
                 wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
                 wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
             }
-            std::cout << "Sss" << std::endl;
-            // waypoints_r_x.publish(wp_r_x);
-            // waypoints_r_y.publish(wp_r_y);   
+            for(int i=0; i<wp_num; i++)
+            {
+                circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
+            }
         }
+        
         // if our's objective lins is radius [W]
         else if(corner_flag.data == true) // rotation
         {   
-            while(true)
+           
+            for(int i=0; i<wp_num; i++) // circle waypoint y
             {
-                for(int i=0; i<wp_num; i++) // circle waypoint y
-                {
-                    float theta = (i+1) * wp_num * PI / 180;
-                    wp_y.push_back(top_y * sin(theta));
-                }
-                if (vy/vx > 0) // turn left - waypoint x
-                {
-                    for(int i=0; i<wp_num; i++)
-                    {
-                        float theta = (i+1)*wp_num * PI / 180;
-                        wp_x.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
-                    }
-                } 
-                else if (vy/vx < 0) // turn right - waypoint x
-                {
-                    for(int i=0; i<wp_num; i++)
-                    {
-                        float theta = (i+1)*wp_num * PI / 180;
-                        wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
-                    }
-                }
+                float theta = (i+1) * wp_num * PI / 180;
+                wp_y_c.push_back(top_y * sin(theta));
+            }
+            if (vy/vx > 0) // turn left - waypoint x
+            {
                 for(int i=0; i<wp_num; i++)
                 {
-                    wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-                    wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+                    float theta = (i+1)*wp_num * PI / 180;
+                    wp_x_c.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
                 }
-            // waypoints_r_x.publish(wp_r_x);
-            // waypoints_r_y.publish(wp_r_y);
-            // while(true)
-            // {
-            //     std::cout << "cdc" << std::endl;
-            //     if (idx >= 4) break;
-            // }
-                // ros::Subscriber test = nh.subscribe("/pub_idx",100,idxCallback);
-                std::cout << idx << std::endl;
-                if (idx >= 4) break;
+            } 
+            else if (vy/vx < 0) // turn right - waypoint x
+            {
+                for(int i=0; i<wp_num; i++)
+                {
+                    float theta = (i+1)*wp_num * PI / 180;
+                    wp_x_c.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
+                }
+            }
+            for(int i=0; i<wp_num; i++)
+            {
+                wp_r_x_c.data[i] =  x_ic + cos_ic * wp_x_c[i] * distance_of_pixel - sin_ic * wp_y_c[i] * distance_of_pixel;
+                wp_r_y_c.data[i] =  y_ic + sin_ic * wp_x_c[i] * distance_of_pixel + cos_ic * wp_y_c[i] * distance_of_pixel;
+            }
+
+            for(int i=0; i<wp_num; i++)
+            {
+                circle(res, Point(inv_convert_x(wp_x_c[i]), inv_convert_y(wp_y_c[i])), 5, Scalar(255,255,255), 3);
             }
         }
-
-        // for(int i=0; i<wp_num; i++)
-        // {
-        //     wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-        //     wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
-        // }
-
-        for(int i=0; i<wp_num; i++)
-        {
-            circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
-        }
-
+        
+        
+        
         // Publish topics [W]   
         //-----------------------------------   
         corner_decision.publish(corner_flag);
         waypoints_r_x.publish(wp_r_x);
         waypoints_r_y.publish(wp_r_y);
+        waypoints_r_x_c.publish(wp_r_x_c);
+        waypoints_r_y_c.publish(wp_r_y_c);
         d435_origin_pub.publish(d435_origin);
         //-----------------------------------
-        
         pub_time=std::chrono::high_resolution_clock::now();
         
         // std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
@@ -302,6 +294,8 @@ int main(int argc, char **argv)
         vec_delete(y_val);
         vec_delete_float(wp_x);
         vec_delete_float(wp_y);
+        vec_delete_float(wp_x_c);
+        vec_delete_float(wp_y_c);
         vec_delete(bottom_x);
         vec_delete_p(contours_sum);
         //----------------------------

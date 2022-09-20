@@ -29,13 +29,17 @@
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Dense>
 
-// ---------------------------------------------
+// -------------------------------------------Fwp_x--
 
 // for test to publish way points [W]
 std_msgs::Float32MultiArray wp_r_x;
 std_msgs::Float32MultiArray wp_r_y;
 std_msgs::Float32MultiArray d435_origin;
 std_msgs::Bool corner_flag;
+
+// for corner waypoints [HW]
+std_msgs::Float32MultiArray wp_r_x_c;
+std_msgs::Float32MultiArray wp_r_y_c;
 
 // t265_pos & att [W]
 geometry_msgs::Vector3 pos;
@@ -163,6 +167,10 @@ vector<int> y_val,  x_val;
 vector<float> wp_y;
 vector<float> wp_x;
 vector<int> bottom_x;
+
+// for corner waypoints[HW]
+vector<float> wp_y_c; 
+vector<float> wp_x_c;
 
 // -------------------------------------------
 // Red_HSV_range (based on dataset)
