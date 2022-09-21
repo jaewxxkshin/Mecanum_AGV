@@ -1,6 +1,7 @@
 #include "get_waypoint.hpp"
 #include <chrono>
 
+
 using namespace cv;
 using namespace std;
 
@@ -42,7 +43,7 @@ int main(int argc, char **argv)
     ros::Subscriber test = nh.subscribe("/pub_idx",100,idxCallback);
     
     
-    // get camera info
+    //get camera info
     rs2::pipeline pipe;
     rs2::config cfg;
     rs2::frameset frames;
@@ -96,20 +97,24 @@ int main(int argc, char **argv)
         // perspective matrix [W]
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
 
+        //read image [HW]
+        // Mat dst = imread("/home/mrl/.ros/sample_img_8.54.png", 1);
+
         char filename_sample_img[200];
         sprintf(filename_sample_img, "sample_img_%d.%d.png", t->tm_min, t->tm_sec);
 
-        imwrite(filename_sample_img,dst);
+         
+        imwrite(filename_sample_img,src); 
 
 
-        int Clusters = 8;
+        int Clusters = 9;
 	    Mat res = K_Means(dst, Clusters);        
 
         k_time=std::chrono::high_resolution_clock::now();
         
         // For remove BEV edge [HW]
-        line(res, Point(0,279),Point(314,720),Scalar(0,0,0), 1); 
-        line(res, Point(1280,67),Point(884,720),Scalar(0,0,0), 1);
+        line(res, Point(0,145),Point(411,720),Scalar(0,0,0), 1); 
+        line(res, Point(1228,0),Point(790,720),Scalar(0,0,0), 1);
         
         // BGR -> HSV [HW]
         cvtColor(res, hsv, COLOR_BGR2HSV);
@@ -130,6 +135,17 @@ int main(int argc, char **argv)
           bitwise_and(res, res, image, mask);
         }
         //========================================================================
+
+        Mat img_erode;
+        Mat img_dilate;
+	    
+        // Mat mask = imread("/home/mrl/.ros/mask_41.4.png", 0);
+	    erode(mask, img_erode, Mat::ones(Size(3,3),CV_8UC1),Point(-1,-1),3);
+        dilate(img_erode, img_dilate, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1), 3);
+
+        // imwrite("after_erode.png",img_erode);
+        // imwrite("after_dilate.png",img_dilate);
+        mask = img_dilate;
 
         // find contours [HW]
         line(mask, Point(0,300),Point(300,720),Scalar(0,0,0), 1); 
@@ -317,12 +333,11 @@ int main(int argc, char **argv)
         sprintf(filename, "res_%d.%d.png", t->tm_min, t->tm_sec);
 
         char filename_mask[200];
-        // sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
+        sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
         // save image name depends on time [JH]
-        // imwrite(filename,res);
-
-        // imwrite(filename_mask,mask);
+        imwrite(filename,res);
+        imwrite(filename_mask,mask);
 
         // save image [JH]
         // imwrite("res.png", res);     
@@ -374,7 +389,10 @@ Mat K_Means(Mat Input, int K) {
 	int attempts = 5;
 	Mat centers;
     // Need to modify function arguement [W]
-	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 100, 0.1), attempts, KMEANS_PP_CENTERS, centers);
+	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 50, 0.1), attempts, KMEANS_PP_CENTERS, centers);
+
+    
+
 
 	Mat new_image(Input.size(), Input.type());
 	for (int y = 0; y < Input.rows; y++)

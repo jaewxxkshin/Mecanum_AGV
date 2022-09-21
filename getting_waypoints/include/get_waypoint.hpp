@@ -63,7 +63,7 @@ int countt = 0;
 int width, height,  x, y, n, nPoints, cIndex, iTemp;
 int upper_x, lower_x, top_y, converted_x, converted_y, right_x, left_x;
 
-const int cluster_k = 8;
+// const int cluster_k = 8;
 
 // variation after applying fitLine() function [W]
 float vx, vy;
@@ -166,7 +166,7 @@ vector<int> bottom_x;
 
 // -------------------------------------------
 // Red_HSV_range (based on dataset)
-Scalar lower_red = Scalar(160, 100, 100);
+Scalar lower_red = Scalar(160, 90, 100);
 Scalar upper_red = Scalar(180, 255, 255);
 // Red_HSV_range (hsv of red - special case)
 Scalar lower_red_sc = Scalar(0, 100, 100);

@@ -128,6 +128,8 @@ void posCallback(const geometry_msgs::Vector3& msg){
 
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
+
+
 	if (corner_flag == false && idx > 8 )  d_flag = true;
 	
 	if (d_flag == true)
@@ -200,6 +202,7 @@ void vec_delete_float(std::vector<float> &vec)
 
 void yaw_ctrl()
 {
+	//==previous index update 
 	gradient = -(wp_r_x[1]-wp_r_x[0])/(wp_r_y[1]-wp_r_y[0]);
 	// f1(x)
 	double tmp_x = pos.x;
@@ -207,9 +210,10 @@ void yaw_ctrl()
 	temp_y = gradient *(tmp_x - wp_r_x[idx])+ wp_r_y[idx];
 	// f2(x)
 	// y2 = gradient *(pos.x - wp_r_x[index+1])+ wp_r_y[index+1];
-	
 	if ( tmp_y > temp_y) idx++;
 	
+	//float r =0.02375;
+	//if( pow((wp_r_x[idx] - pos.x),2) + pow((wp_r_y[idx]-pos.y),2) < pow(r,2)) idx++;
 	
 	// cur_psi = t265_att.z + M_PI/2;
 	cur_psi = t265_att.z * 180 / M_PI + 90;
@@ -232,11 +236,11 @@ void yaw_ctrl()
 		k = distance*(max_k/max_dist);
 		if(fabs(k)>1) k = k/fabs(k);
 		// 0.1 -> ++0.1
-		err_psi = k*err_psi_1 + (1-k)*err_psi_2;
-
-		if (idx==wp_num-2) prev_psi = err_psi;
+		if (corner_flag == false) err_psi = k*err_psi_1 + (1-k)*err_psi_2;
+		if (corner_flag == true) err_psi = err_psi_2;
+		// if (idx==wp_num-2) prev_psi = err_psi;
 	}
-	else if (idx >=wp_num-1) err_psi = prev_psi;
+	// else if (idx >=wp_num-1) err_psi = prev_psi;
 	// d gain : - d_psi*t265_ang_vel.z;
 
 	err_psi_dot = p_psi*err_psi ;
@@ -251,4 +255,3 @@ void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision)
 	corner_flag = decision->data;
 	//std::cout << "corner_flag : " << corner_flag <<std::endl;
 }
-
