@@ -34,11 +34,10 @@ geometry_msgs::Vector3 t265_att;
 
 std::vector<float> wp_r_x;
 std::vector<float> wp_r_y;
-std::vector<float> wp_r_x_c;
-std::vector<float> wp_r_y_c;
 
 bool corner_flag = false;
 bool flag = 0;
+bool d_flag = true;
 //---------------------------[W]
 bool straight_mode = 1;
 //bool radius_mode = 0;
@@ -69,14 +68,14 @@ void rotCallback(const geometry_msgs::Quaternion& msg);
 void posCallback(const geometry_msgs::Vector3& msg);
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
-void wp_r_x_c_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
-void wp_r_y_c_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void originCallback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void vec_delete_float(std::vector<float> &vec);
 void cal_rot_wp();
 void yaw_ctrl();
 void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision);
 // ----------------------------------------------------------------------------
+std_msgs::Float32MultiArray wp_r_x_magv;
+std_msgs::Float32MultiArray wp_r_y_magv;
 
 int main(int argc, char **argv)
 {   
@@ -85,17 +84,20 @@ int main(int argc, char **argv)
 
 	wp_set_sub.data.resize(wp_num*2);
 	arr_psi.data.resize(1);
-
+	wp_r_x_magv.data.resize(wp_num);
+	wp_r_y_magv.data.resize(wp_num);
+	
 	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
 	ros::Publisher pub_idx = nh.advertise<std_msgs::Int16>("pub_idx", 1000);
 	ros::Publisher pub_dist = nh.advertise<std_msgs::Float32>("pub_dist", 1000);
+	ros::Publisher waypoints_r_x_magv = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x_magv", wp_num);
+    ros::Publisher waypoints_r_y_magv = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y_magv", wp_num);
+    
 
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);
 	ros::Subscriber waypoint_r_x_sub =nh.subscribe("wp_r_x",100,wp_r_x_Callback);
     ros::Subscriber waypoint_r_y_sub =nh.subscribe("wp_r_y",100,wp_r_y_Callback);
-	ros::Subscriber waypoint_r_x_c_sub =nh.subscribe("wp_r_x_c",100,wp_r_x_c_Callback);
-    ros::Subscriber waypoint_r_y_c_sub =nh.subscribe("wp_r_y_c",100,wp_r_y_c_Callback);
 	ros::Subscriber corner_decision_sub=nh.subscribe("/corner_decision",100,corner_decision_Callback);
 	ros::Subscriber d435_origin_sub =nh.subscribe("/d435_origin",100,originCallback);
 	
@@ -106,6 +108,8 @@ int main(int argc, char **argv)
 		pub_psi.publish(arr_psi);
 		pub_idx.publish(idx_ros);
 		pub_dist.publish(dist_ros);
+		waypoints_r_y_magv.publish(wp_r_y_magv);
+		waypoints_r_x_magv.publish(wp_r_x_magv);
 		ros::spinOnce();
 		loop_rate.sleep();
 	}
@@ -124,23 +128,33 @@ void posCallback(const geometry_msgs::Vector3& msg){
 
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	if (corner_flag == false)
+	if (corner_flag == false && idx > 8 )  d_flag = true;
+	
+	if (d_flag == true)
 	{
 		vec_delete_float(wp_r_x);
 		for (int i = 0; i < wp_num; i++) 
-		{
+			{
 			wp_r_x.push_back(array->data[i]);	
-		}
-		flag = 1;
-		// idx will initialized when new waypoint is created
+			}
 		idx = 0;
 	}
-	
+	if (corner_flag == true) d_flag = false;
+	std::cout << "corner flag : \t" << corner_flag << "\td_flag : \t" << d_flag << std::endl;
+	flag = 1;
+	// idx will initialized when new waypoint is created
+	for(int i=0; i<wp_num; i++)
+    {
+        wp_r_x_magv.data[i] =  wp_r_x[i];
+        // wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+    }
+
 }
 
 void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	if (corner_flag == false)
+	if (corner_flag == false && idx > 8)  d_flag = true;
+	if (d_flag == true)
 	{
 		vec_delete_float(wp_r_y);
 		for (int i = 0; i < wp_num; i++) 
@@ -148,36 +162,14 @@ void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 			wp_r_y.push_back(array->data[i]);	
 		}
 	}
-}
+	if (corner_flag == true) d_flag = false;
+	for(int i=0; i<wp_num; i++)
+    {
+        // wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+        wp_r_y_magv.data[i] = wp_r_y[i];
+    }
+	// std::cout << " wp_R_Y : \t" << wp_r_y[5] << std::endl;
 
-// for corner waypoints [HW]
-void wp_r_x_c_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
-{
-	if (corner_flag == true)
-	{
-		vec_delete_float(wp_r_x_c);
-		for (int i = 0; i < wp_num; i++) 
-		{
-			wp_r_x_c.push_back(array->data[i]);	
-		}
-		flag = 1;
-		// idx will initialized when new waypoint is created
-		idx = 0;
-		
-	}
-
-}
-
-void wp_r_y_c_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
-{
-	if (corner_flag == false)
-	{
-		vec_delete_float(wp_r_y_c);
-		for (int i = 0; i < wp_num; i++) 
-		{
-			wp_r_y_c.push_back(array->data[i]);	
-		}
-	}
 }
 
 void originCallback(const std_msgs::Float32MultiArray::ConstPtr& array)
@@ -258,6 +250,5 @@ void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision)
 {
 	corner_flag = decision->data;
 	//std::cout << "corner_flag : " << corner_flag <<std::endl;
-	
 }
 

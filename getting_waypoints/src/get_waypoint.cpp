@@ -6,6 +6,7 @@ using namespace std;
 
 // select line which we want to tracking(by color) - demo [HW]
 int color = 1;
+// color : 1 = red / color : 2 =blue
 
 // To subscribe t265 information [W]
 // ---------------------------------------------------------------------
@@ -33,8 +34,6 @@ int main(int argc, char **argv)
     ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
     ros::Publisher waypoints_r_x = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x", wp_num);
     ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);
-    ros::Publisher waypoints_r_x_c = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x_c", wp_num);
-    ros::Publisher waypoints_r_y_c = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y_c", wp_num);
     ros::Publisher d435_origin_pub = nh.advertise<std_msgs::Float32MultiArray>("d435_origin", wp_num);
     
     // ROS Subscriber [W]
@@ -81,8 +80,6 @@ int main(int argc, char **argv)
         // To avoid core dumped [W]
         set_array(wp_r_x, wp_num);
         set_array(wp_r_y, wp_num); 
-        set_array(wp_r_x_c, wp_num);
-        set_array(wp_r_y_c, wp_num);
         set_array(d435_origin, 2);
 
         // to calculate global waipoint's coordinate [W]
@@ -98,7 +95,13 @@ int main(int argc, char **argv)
 
         // perspective matrix [W]
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
-              
+
+        char filename_sample_img[200];
+        sprintf(filename_sample_img, "sample_img_%d.%d.png", t->tm_min, t->tm_sec);
+
+        imwrite(filename_sample_img,dst);
+
+
         int Clusters = 8;
 	    Mat res = K_Means(dst, Clusters);        
 
@@ -134,7 +137,7 @@ int main(int argc, char **argv)
         findContours(mask, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
         drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
     
-        imwrite("contour.png", image);  
+        // imwrite("contour.png", image);  
 
         // get contour's y_val( every y ), x_val (every x ) [JH]
         for ( int i = 0; i < contours.size(); i++)
@@ -219,9 +222,8 @@ int main(int argc, char **argv)
 
 
         // if our's objective line is straight [W]
-        if (corner_flag.data == false)
+        if (corner_flag.data == false) // straight 
         {
-            
             for(int i=0; i<wp_num; i++)
             {
                 wp_y.push_back(top_y/wp_num*(i+1));
@@ -229,63 +231,75 @@ int main(int argc, char **argv)
                 wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
                 wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
             }
-            for(int i=0; i<wp_num; i++)
-            {
-                circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
-            }
+            // std::cout << "Sss" << std::endl;
+            // waypoints_r_x.publish(wp_r_x);
+            // waypoints_r_y.publish(wp_r_y);   
         }
-        
         // if our's objective lins is radius [W]
         else if(corner_flag.data == true) // rotation
         {   
-           
             for(int i=0; i<wp_num; i++) // circle waypoint y
             {
-                float theta = (i+1) * wp_num * PI / 180;
-                wp_y_c.push_back(top_y * sin(theta));
+                float theta = i *wp_num *(PI / 180);
+
+                wp_y.push_back(top_y * sin(theta));
             }
             if (vy/vx > 0) // turn left - waypoint x
             {
                 for(int i=0; i<wp_num; i++)
                 {
-                    float theta = (i+1)*wp_num * PI / 180;
-                    wp_x_c.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
+                    float theta = i * wp_num * 9/10 * PI / 180;
+                    wp_x.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
                 }
             } 
             else if (vy/vx < 0) // turn right - waypoint x
             {
                 for(int i=0; i<wp_num; i++)
                 {
-                    float theta = (i+1)*wp_num * PI / 180;
-                    wp_x_c.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
+                    float theta = i*wp_num * PI / 180;
+                    wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
                 }
             }
             for(int i=0; i<wp_num; i++)
             {
-                wp_r_x_c.data[i] =  x_ic + cos_ic * wp_x_c[i] * distance_of_pixel - sin_ic * wp_y_c[i] * distance_of_pixel;
-                wp_r_y_c.data[i] =  y_ic + sin_ic * wp_x_c[i] * distance_of_pixel + cos_ic * wp_y_c[i] * distance_of_pixel;
+                wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+                wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
             }
-
-            for(int i=0; i<wp_num; i++)
-            {
-                circle(res, Point(inv_convert_x(wp_x_c[i]), inv_convert_y(wp_y_c[i])), 5, Scalar(255,255,255), 3);
-            }
+            // waypoints_r_x.publish(wp_r_x);
+            // waypoints_r_y.publish(wp_r_y);
+            // while(true)
+            // {
+            //     std::cout << "cdc" << std::endl;
+            //     if (idx >= 4) break;
+            // }
+                // ros::Subscriber test = nh.subscribe("/pub_idx",100,idxCallback);
+                // std::cout << idx << std::endl;
+                // if (idx >= 4) break;
+            // }
         }
-        
-        
-        
+
+        // for(int i=0; i<wp_num; i++)
+        // {
+        //     wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
+        //     wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+        // }
+
+        for(int i=0; i<wp_num; i++)
+        {
+            circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
+        }
+
         // Publish topics [W]   
         //-----------------------------------   
         corner_decision.publish(corner_flag);
         waypoints_r_x.publish(wp_r_x);
         waypoints_r_y.publish(wp_r_y);
-        waypoints_r_x_c.publish(wp_r_x_c);
-        waypoints_r_y_c.publish(wp_r_y_c);
         d435_origin_pub.publish(d435_origin);
         //-----------------------------------
+        
         pub_time=std::chrono::high_resolution_clock::now();
         
-        // std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
+        std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
         // std:: cout <<"all process: "<< chrono::duration_cast<chrono::milliseconds>(pub_time - start).count() <<"ms"<< std::endl;
         
         // vector initialization [W]
@@ -294,8 +308,6 @@ int main(int argc, char **argv)
         vec_delete(y_val);
         vec_delete_float(wp_x);
         vec_delete_float(wp_y);
-        vec_delete_float(wp_x_c);
-        vec_delete_float(wp_y_c);
         vec_delete(bottom_x);
         vec_delete_p(contours_sum);
         //----------------------------
@@ -305,15 +317,16 @@ int main(int argc, char **argv)
         sprintf(filename, "res_%d.%d.png", t->tm_min, t->tm_sec);
 
         char filename_mask[200];
-        sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
+        // sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
         // save image name depends on time [JH]
-        //imwrite(filename,res);
-        //imwrite(filename_mask,mask);
+        // imwrite(filename,res);
+
+        // imwrite(filename_mask,mask);
 
         // save image [JH]
-        imwrite("res.png", res);     
-        imwrite("mask.png", mask);     
+        // imwrite("res.png", res);     
+        // imwrite("mask.png", mask);     
 
         ros::spinOnce();        
     }
@@ -361,7 +374,7 @@ Mat K_Means(Mat Input, int K) {
 	int attempts = 5;
 	Mat centers;
     // Need to modify function arguement [W]
-	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 10, 1.0), attempts, KMEANS_PP_CENTERS, centers);
+	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 100, 0.1), attempts, KMEANS_PP_CENTERS, centers);
 
 	Mat new_image(Input.size(), Input.type());
 	for (int y = 0; y < Input.rows; y++)
