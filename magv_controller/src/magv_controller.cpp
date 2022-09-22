@@ -150,7 +150,7 @@ void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 		idx = 0;
 		prev_corner == false; // straight 
 	}
-	
+	// straight line -> corner 
 	if ( prev_corner == false && corner_flag == true ) idx_flag = true;
 	if (idx_flag == true && idx >4)	g_flag ++;
 	g_flag_ros.data = g_flag;
@@ -177,7 +177,7 @@ void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 
 void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	if (corner_flag == false && idx > 8)  d_flag = true;
+	if (corner_flag == false) d_flag = true; //&& idx > 8)  d_flag = true;
 	if (d_flag == true)
 	{
 		vec_delete_float(wp_r_y);
@@ -260,7 +260,7 @@ void yaw_ctrl()
 	
 	// cur_psi = t265_att.z + M_PI/2;
 	cur_psi = t265_att.z * 180 / M_PI + 90;
-	if ( idx <wp_num-1 )
+	if ( idx < wp_num-1 )
 	{
 		// Compare global robot origin to first waypoint [W]
 		err_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x)) * 180 / M_PI;
@@ -282,6 +282,7 @@ void yaw_ctrl()
 		// if (corner_flag == false) 
 		err_psi = k*err_psi_1 + (1-k)*err_psi_2;
 		// if (corner_flag == true) err_psi = err_psi_2;
+
 		// if (idx==wp_num-2) prev_psi = err_psi;
 	}
 	// else if (idx >=wp_num-1) err_psi = prev_psi;

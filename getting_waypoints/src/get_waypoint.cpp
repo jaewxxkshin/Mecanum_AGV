@@ -1,7 +1,6 @@
 #include "get_waypoint.hpp"
 #include <chrono>
 
-
 using namespace cv;
 using namespace std;
 
@@ -32,6 +31,10 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // ROS Publisher
+    // validation of rotation trajectory [W] ===================================
+    ros::Publisher validation_x = nh.advertise<std_msgs::Float32MultiArray>("ele_x", wp_num);
+    ros::Publisher validation_y = nh.advertise<std_msgs::Float32MultiArray>("ele_y", wp_num);
+    //==========================================================================
     ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
     ros::Publisher waypoints_r_x = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x", wp_num);
     ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);
@@ -83,6 +86,11 @@ int main(int argc, char **argv)
         set_array(wp_r_y, wp_num); 
         set_array(d435_origin, 2);
 
+        //===[W]
+        set_array(ele_x, wp_num);
+        set_array(ele_y, wp_num); 
+        //===
+
         // to calculate global waipoint's coordinate [W]
         x_ic = pos.x;
         y_ic = pos.y;
@@ -90,25 +98,28 @@ int main(int argc, char **argv)
         d435_origin.data[1] = y_ic;
         cos_ic = cos(t265_att.z);
         sin_ic = sin(t265_att.z);
-              
+
+        // Mat src = imread("/home/mrl/.ros/sample_img_43.32.png", 1);      
         Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+        
         Mat perspective_mat = getPerspectiveTransform(src_p, dst_p);
 
         // perspective matrix [W]
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
 
         //read image [HW]
-        Mat dst = imread("/home/mrl/.ros/sample_img_28.3.png", 1);
+        // Mat dst = imread("/home/mrl/.ros/sample_img_28.3.png", 1);
 
         char filename_sample_img[200];
         sprintf(filename_sample_img, "sample_img_%d.%d.png", t->tm_min, t->tm_sec);
 
+
          
-        imwrite(filename_sample_img,src); 
+        // imwrite(filename_sample_img,src); 
 
 
         int Clusters = 9;
-	    Mat res = K_Means(dst, Clusters);        
+        Mat res = K_Means(dst, Clusters);        
 
         k_time=std::chrono::high_resolution_clock::now();
         
@@ -139,18 +150,17 @@ int main(int argc, char **argv)
         Mat img_erode;
         Mat img_dilate;
 	    
-        // Mat mask = imread("/home/mrl/.ros/mask_41.4.png", 0);
+        // Mat mask = imread("/home/mrl/.ros/mask_38.20.png", 0);
 	    erode(mask, img_erode, Mat::ones(Size(3,3),CV_8UC1),Point(-1,-1),3);
         dilate(img_erode, img_dilate, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1), 3);
 
         // imwrite("after_erode.png",img_erode);
         // imwrite("after_dilate.png",img_dilate);
-        mask = img_dilate;
 
         // find contours [HW]
         line(mask, Point(0,300),Point(300,720),Scalar(0,0,0), 1); 
     
-        findContours(mask, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
+        findContours(img_dilate, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
         drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
     
         // imwrite("contour.png", image);  
@@ -172,10 +182,10 @@ int main(int argc, char **argv)
         }
     
         // contour's x,y min/max value [JH]
-        int min = *min_element(y_val.begin(),y_val.end());
-        int max = *max_element(y_val.begin(),y_val.end());
-        int x_left = *min_element(x_val.begin(),x_val.end());
-        int x_right = *max_element(x_val.begin(),x_val.end());
+        float min = *min_element(y_val.begin(),y_val.end());
+        float max = *max_element(y_val.begin(),y_val.end());
+        float x_left = *min_element(x_val.begin(),x_val.end());
+        float x_right = *max_element(x_val.begin(),x_val.end());
          
         // contour's bottom x value [JH]
         for ( int i = 0; i < contours.size(); i++)
@@ -191,8 +201,8 @@ int main(int argc, char **argv)
 
         // corner [JH]
         // get avg of contour's bottom x value [JH]
-        int sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
-        int mean_bottom_x = sum_bottom_x/bottom_x.size();
+        float sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
+        float mean_bottom_x = sum_bottom_x/bottom_x.size();
         
         // if system detect more than 2 contours -> connect every contours [JH]
         for (int i=0; i < contours.size(); i++)
@@ -210,8 +220,8 @@ int main(int argc, char **argv)
         
         gradient = vy/vx;
 
-        x = int(detected_line[2]);
-        y = int(detected_line[3]);
+        x = float(detected_line[2]);
+        y = float(detected_line[3]);
     
         // get (x,y) of detected line in converted coordinate [JH]
         converted_x = convert_x(x);
@@ -221,8 +231,8 @@ int main(int argc, char **argv)
         right_x = convert_x(x_right);
     
         // get the source of drawing straight line [JH]
-        upper_x = int(-vx/vy*(top_y-converted_y)+converted_x);
-        lower_x = int(-vx/vy*(-1*converted_y) + converted_x);
+        upper_x = float(-vx/vy*(top_y-converted_y)+converted_x);
+        lower_x = float(-vx/vy*(-1*converted_y) + converted_x);
 
 
 
@@ -244,8 +254,8 @@ int main(int argc, char **argv)
             {
                 wp_y.push_back(top_y/wp_num*(i+1));
                 wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
-                wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-                wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+                wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i]*dist_pix  - sin_ic * wp_y[i]*dist_pix; //* distance_of_pixel
+                wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i]*dist_pix  + cos_ic * wp_y[i]*dist_pix;
             }
             // std::cout << "Sss" << std::endl;
             // waypoints_r_x.publish(wp_r_x);
@@ -265,7 +275,7 @@ int main(int argc, char **argv)
                 for(int i=0; i<wp_num; i++)
                 {
                     float theta = i * wp_num * (PI / 180); //9/10 
-                    wp_x.push_back(convert_x(mean_bottom_x)- top_y + (top_y * cos(theta)));
+                    wp_x.push_back(convert_x(mean_bottom_x - (top_y - top_y*cos(theta))));
                     // wp_x.push_back(conver_x(mean_bottom_x) - top_y *cos(theta));
                 }
             } 
@@ -274,18 +284,19 @@ int main(int argc, char **argv)
                 for(int i=0; i<wp_num; i++)
                 {
                     float theta = i*wp_num * (PI / 180);
-                    wp_x.push_back(convert_x(mean_bottom_x) + top_y - (top_y * cos(theta)));
+                    wp_x.push_back(convert_x(mean_bottom_x + (top_y - top_y*cos(theta))));
                 }
             }
+
             for(int i=0; i<wp_num; i++)
             {
-                wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-                wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
+                wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i]*dist_pix  - sin_ic * wp_y[i]*dist_pix;// * distance_of_pixel;
+                wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i]*dist_pix  + cos_ic * wp_y[i]*dist_pix;// * distance_of_pixel;
             }
 
-            circle(res, Point(inv_convert_x(mean_bottom_x), inv_convert_y(top_y)), 5, Scalar(255,0,0), 3);
-            line(res, Point(inv_convert_x(mean_bottom_x -top_y),inv_convert_y(top_y)),Point(inv_convert_x(wp_x[9]),inv_convert_y(wp_y[9])),Scalar(0,0,0), 1);
-            line(res, Point(inv_convert_x(mean_bottom_x -top_y),inv_convert_y(top_y)),Point(inv_convert_x(wp_x[0]),inv_convert_y(wp_y[0])),Scalar(0,0,0), 1);
+            // circle(res, Point(inv_convert_x(mean_bottom_x), inv_convert_y(top_y)), 5, Scalar(255,0,0), 3);
+            // line(res, Point(inv_convert_x(mean_bottom_x -top_y),inv_convert_y(top_y)),Point(inv_convert_x(wp_x[9]),inv_convert_y(wp_y[9])),Scalar(0,0,0), 1);
+            // line(res, Point(inv_convert_x(mean_bottom_x -top_y),inv_convert_y(top_y)),Point(inv_convert_x(wp_x[0]),inv_convert_y(wp_y[0])),Scalar(0,0,0), 1);
             // waypoints_r_x.publish(wp_r_x);
             // waypoints_r_y.publish(wp_r_y);
             // while(true)
@@ -309,7 +320,13 @@ int main(int argc, char **argv)
         {
             circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
         }
-
+        //===[W]
+        for(int i=0; i<wp_num; i++)
+        {
+            ele_x.data[i] =  wp_x[i]*dist_pix;
+            ele_y.data[i] =  wp_y[i]*dist_pix;
+        }
+        //===
         // Publish topics [W]   
         //-----------------------------------   
         corner_decision.publish(corner_flag);
@@ -318,6 +335,10 @@ int main(int argc, char **argv)
         d435_origin_pub.publish(d435_origin);
         //-----------------------------------
         
+        //===[W]
+        validation_x.publish(ele_x);
+        validation_y.publish(ele_y);
+        //===   
         pub_time=std::chrono::high_resolution_clock::now();
         
         std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
@@ -341,8 +362,8 @@ int main(int argc, char **argv)
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
         // save image name depends on time [JH]
-        imwrite(filename,res);
-        imwrite(filename_mask,mask);
+        // imwrite(filename,res);
+        // imwrite(filename_mask,mask);
 
         // save image [JH]
         // imwrite("res.png", res);     
@@ -394,7 +415,7 @@ Mat K_Means(Mat Input, int K) {
 	int attempts = 5;
 	Mat centers;
     // Need to modify function arguement [W]
-	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 50, 0.1), attempts, KMEANS_PP_CENTERS, centers);
+	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 10, 0.1), attempts, KMEANS_PP_CENTERS, centers);
 
     
 

@@ -34,6 +34,8 @@
 // for test to publish way points [W]
 std_msgs::Float32MultiArray wp_r_x;
 std_msgs::Float32MultiArray wp_r_y;
+std_msgs::Float32MultiArray ele_x;
+std_msgs::Float32MultiArray ele_y;
 std_msgs::Float32MultiArray d435_origin;
 std_msgs::Bool corner_flag;
 
@@ -47,11 +49,15 @@ geometry_msgs::Vector3 t265_att;
 #define left_width 412
 #define right_width 789
 #define img_height 720
-#define distance_of_pixel 0.00132  //m 
+// #define distance_of_pixel 0.00132  //m 
 #define PI 3.141592
 #define corner_threshold 700
 #define wp_num 10
 #define hf 3
+
+//=====================[W]
+float dist_pix = 0.00132;
+//=====================
 
 int idx = 0;
 bool img_flag = true; 
@@ -60,8 +66,8 @@ bool img_flag = true;
 int countt = 0;
 
 // varaitons of kmeans algorithm
-int width, height,  x, y, n, nPoints, cIndex, iTemp;
-int upper_x, lower_x, top_y, converted_x, converted_y, right_x, left_x;
+int width, height, n, nPoints, cIndex, iTemp;
+float upper_x, lower_x, top_y, converted_x, converted_y, right_x, left_x,x, y;
 
 // const int cluster_k = 8;
 
@@ -105,30 +111,43 @@ void vec_delete_pair(vector<pair<int, int>> &vec)
 }
 // function for coordinate conversion [JH]
 // -------------------------------------------
-int convert_x (int &x)
+// int convert_x (int &x)
+// { 
+//   int converted_x = 0;
+//   converted_x= x-((right_width-left_width)/2 + left_width);
+//   return converted_x;
+// }
+float convert_x (const float &x)
 { 
-  int converted_x = 0;
-  converted_x= x-((right_width-left_width)/2 + left_width);
+  float converted_x = 0;
+  converted_x= x-((right_width-left_width)/2.0 + left_width);
   return converted_x;
 }
 
-int convert_y (int &y)
+// int convert_y (int &y)
+// {
+//   int converted_y = 0;
+//   converted_y= -(y-img_height);
+//   return converted_y;
+// }
+
+float convert_y (const float &y)
 {
-  int converted_y = 0;
+  float converted_y = 0;
   converted_y= -(y-img_height);
   return converted_y;
 }
 
-int inv_convert_x( const int &x)
+int inv_convert_x( const float &x)
 {
   int inv_converted_x=0;
-  inv_converted_x = x+ ((right_width-left_width)/2 + left_width);
+  inv_converted_x = x+ ((right_width-left_width)/2.0 + left_width);
   return inv_converted_x;
 }
 
-int inv_convert_y( const int &y)
+int inv_convert_y( const float &y)
 {
-  int inv_converted_y=0;
+  float inv_converted_y=0;
   inv_converted_y = -y+img_height;
   return inv_converted_y;
 }
