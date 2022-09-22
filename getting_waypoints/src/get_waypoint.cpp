@@ -98,7 +98,7 @@ int main(int argc, char **argv)
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
 
         //read image [HW]
-        // Mat dst = imread("/home/mrl/.ros/sample_img_8.54.png", 1);
+        Mat dst = imread("/home/mrl/.ros/sample_img_28.3.png", 1);
 
         char filename_sample_img[200];
         sprintf(filename_sample_img, "sample_img_%d.%d.png", t->tm_min, t->tm_sec);
@@ -264,16 +264,17 @@ int main(int argc, char **argv)
             {
                 for(int i=0; i<wp_num; i++)
                 {
-                    float theta = i * wp_num * 9/10 * PI / 180;
-                    wp_x.push_back(convert_x(mean_bottom_x)- top_y + top_y * cos(theta));
+                    float theta = i * wp_num * (PI / 180); //9/10 
+                    wp_x.push_back(convert_x(mean_bottom_x)- top_y + (top_y * cos(theta)));
+                    // wp_x.push_back(conver_x(mean_bottom_x) - top_y *cos(theta));
                 }
             } 
             else if (vy/vx < 0) // turn right - waypoint x
             {
                 for(int i=0; i<wp_num; i++)
                 {
-                    float theta = i*wp_num * PI / 180;
-                    wp_x.push_back(convert_x(mean_bottom_x) + top_y - top_y * cos(theta));
+                    float theta = i*wp_num * (PI / 180);
+                    wp_x.push_back(convert_x(mean_bottom_x) + top_y - (top_y * cos(theta)));
                 }
             }
             for(int i=0; i<wp_num; i++)
@@ -281,6 +282,10 @@ int main(int argc, char **argv)
                 wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
                 wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
             }
+
+            circle(res, Point(inv_convert_x(mean_bottom_x), inv_convert_y(top_y)), 5, Scalar(255,0,0), 3);
+            line(res, Point(inv_convert_x(mean_bottom_x -top_y),inv_convert_y(top_y)),Point(inv_convert_x(wp_x[9]),inv_convert_y(wp_y[9])),Scalar(0,0,0), 1);
+            line(res, Point(inv_convert_x(mean_bottom_x -top_y),inv_convert_y(top_y)),Point(inv_convert_x(wp_x[0]),inv_convert_y(wp_y[0])),Scalar(0,0,0), 1);
             // waypoints_r_x.publish(wp_r_x);
             // waypoints_r_y.publish(wp_r_y);
             // while(true)

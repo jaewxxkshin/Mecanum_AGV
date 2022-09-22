@@ -25,6 +25,7 @@
 std_msgs::Float32MultiArray wp_set_sub;
 std_msgs::Float32MultiArray arr_psi;
 std_msgs::Int16 idx_ros;
+std_msgs::Int16 g_flag_ros;
 std_msgs::Float32 dist_ros;
 
 geometry_msgs::Vector3 pos;
@@ -60,7 +61,13 @@ float k = 0;
 float x_ic, y_ic = 0;
 // jh 
 double gradient =0.0;
-double temp_y = 0.0;
+double temp_y1 = 0.0;
+double temp_y2 = 0.0;
+double temp_x1 = 0.0;
+double temp_x2 = 0.0;
+int g_flag = 0;
+bool prev_corner = false;
+bool idx_flag = false;
 int16_t idx = 0;
 // Function 
 // ----------------------------------------------------------------------------
@@ -89,6 +96,7 @@ int main(int argc, char **argv)
 	
 	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
 	ros::Publisher pub_idx = nh.advertise<std_msgs::Int16>("pub_idx", 1000);
+	ros::Publisher pub_g_flag = nh.advertise<std_msgs::Int16>("g_flag", 1000);
 	ros::Publisher pub_dist = nh.advertise<std_msgs::Float32>("pub_dist", 1000);
 	ros::Publisher waypoints_r_x_magv = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x_magv", wp_num);
     ros::Publisher waypoints_r_y_magv = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y_magv", wp_num);
@@ -107,6 +115,7 @@ int main(int argc, char **argv)
 	{
 		pub_psi.publish(arr_psi);
 		pub_idx.publish(idx_ros);
+		pub_g_flag.publish(g_flag_ros);
 		pub_dist.publish(dist_ros);
 		waypoints_r_y_magv.publish(wp_r_y_magv);
 		waypoints_r_x_magv.publish(wp_r_x_magv);
@@ -128,28 +137,41 @@ void posCallback(const geometry_msgs::Vector3& msg){
 
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-
-
 	if (corner_flag == false && idx > 8 )  d_flag = true;
 	
 	if (d_flag == true)
 	{
+		idx_flag = false;
 		vec_delete_float(wp_r_x);
 		for (int i = 0; i < wp_num; i++) 
 			{
 			wp_r_x.push_back(array->data[i]);	
 			}
 		idx = 0;
+		prev_corner == false; // straight 
 	}
-	if (corner_flag == true) d_flag = false;
+	
+	if ( prev_corner == false && corner_flag == true ) idx_flag = true;
+	if (idx_flag == true && idx >4)	g_flag ++;
+	g_flag_ros.data = g_flag;
+
+	if (corner_flag == true) 
+	{
+		d_flag = false;
+		prev_corner == true; // corner 
+	}
+
 	std::cout << "corner flag : \t" << corner_flag << "\td_flag : \t" << d_flag << std::endl;
 	flag = 1;
 	// idx will initialized when new waypoint is created
+	
 	for(int i=0; i<wp_num; i++)
     {
         wp_r_x_magv.data[i] =  wp_r_x[i];
         // wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
     }
+
+	
 
 }
 
@@ -202,16 +224,37 @@ void vec_delete_float(std::vector<float> &vec)
 
 void yaw_ctrl()
 {
-	//==previous index update 
-	gradient = -(wp_r_x[1]-wp_r_x[0])/(wp_r_y[1]-wp_r_y[0]);
-	// f1(x)
-	double tmp_x = pos.x;
-	double tmp_y = pos.y;
-	temp_y = gradient *(tmp_x - wp_r_x[idx])+ wp_r_y[idx];
-	// f2(x)
-	// y2 = gradient *(pos.x - wp_r_x[index+1])+ wp_r_y[index+1];
-	if ( tmp_y > temp_y) idx++;
-	
+	if ( g_flag%2 == 0 )
+	{
+		// y
+ 		gradient = -(wp_r_x[idx+1]-wp_r_x[idx])/(wp_r_y[idx+1]-wp_r_y[idx]);
+		// f1(x)
+		// double tmp_x = pos.x;
+		// double tmp_y = pos.y;
+		temp_y1 = gradient *(pos.x - wp_r_x[idx])+ wp_r_y[idx];
+		// f2(x)
+		temp_y2 = gradient *(pos.x - wp_r_x[idx+1])+ wp_r_y[idx+1];
+		if (wp_r_y[1] - wp_r_y[0]>0 && pos.y > temp_y1 ) idx++; //&& pos.y <temp_y2 ) idx ++;
+		if (wp_r_y[1] - wp_r_y[0]<0 && pos.y < temp_y1 ) idx++;
+	}
+
+	if ( g_flag%2 == 1 )
+	{
+		// x
+		// gradient = -(wp_r_x[idx+1]-wp_r_x[idx])/(wp_r_y[idx+1]-wp_r_y[idx]);
+		gradient = -(wp_r_y[idx+1]-wp_r_y[idx])/(wp_r_x[idx+1]-wp_r_x[idx]);		
+		// f1(x)
+		// double tmp_x = pos.x;
+		// double tmp_y = pos.y;
+		temp_x1 = gradient *(pos.y - wp_r_y[idx])+ wp_r_x[idx];
+		// f2(x)
+		temp_x2 = gradient *(pos.y - wp_r_y[idx+1])+ wp_r_x[idx+1];
+		if (wp_r_x[1] - wp_r_x[0]>0 && pos.x > temp_x1 ) idx++; //&& pos.y <temp_y2 ) idx ++;
+		if (wp_r_x[1] - wp_r_x[0]<0 && pos.x < temp_x1 ) idx++;
+		
+		// if ( pos.x < temp_x1 ) idx++;//&& pos.y <temp_x2 ) idx ++;
+	}
+
 	//float r =0.02375;
 	//if( pow((wp_r_x[idx] - pos.x),2) + pow((wp_r_y[idx]-pos.y),2) < pow(r,2)) idx++;
 	
@@ -236,8 +279,9 @@ void yaw_ctrl()
 		k = distance*(max_k/max_dist);
 		if(fabs(k)>1) k = k/fabs(k);
 		// 0.1 -> ++0.1
-		if (corner_flag == false) err_psi = k*err_psi_1 + (1-k)*err_psi_2;
-		if (corner_flag == true) err_psi = err_psi_2;
+		// if (corner_flag == false) 
+		err_psi = k*err_psi_1 + (1-k)*err_psi_2;
+		// if (corner_flag == true) err_psi = err_psi_2;
 		// if (idx==wp_num-2) prev_psi = err_psi;
 	}
 	// else if (idx >=wp_num-1) err_psi = prev_psi;
