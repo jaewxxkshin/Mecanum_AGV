@@ -157,10 +157,11 @@ int main(int argc, char **argv)
         // imwrite("after_erode.png",img_erode);
         // imwrite("after_dilate.png",img_dilate);
 
+        mask = img_dilate;
         // find contours [HW]
         line(mask, Point(0,300),Point(300,720),Scalar(0,0,0), 1); 
     
-        findContours(img_dilate, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
+        findContours(mask, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
         drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
     
         // imwrite("contour.png", image);  
@@ -366,8 +367,8 @@ int main(int argc, char **argv)
         // imwrite(filename_mask,mask);
 
         // save image [JH]
-        // imwrite("res.png", res);     
-        // imwrite("mask.png", mask);     
+        imwrite("res.png", res);     
+        imwrite("mask.png", mask);     
 
         ros::spinOnce();        
     }
