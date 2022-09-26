@@ -60,7 +60,6 @@ float cur_psi = 0;
 float k = 0;
 float x_ic, y_ic = 0;
 // jh 
-double gradient =0.0;
 double temp_y1 = 0.0;
 double temp_y2 = 0.0;
 double temp_x1 = 0.0;
@@ -69,6 +68,13 @@ int g_flag = 0;
 bool prev_corner = false;
 bool idx_flag = false;
 int16_t idx = 0;
+
+// variable for dp_product
+float gradient =0.0;
+float dp_val =0.0;
+std::vector<float> vector1;
+std::vector<float> vector2;
+
 // Function 
 // ----------------------------------------------------------------------------
 void rotCallback(const geometry_msgs::Quaternion& msg);
@@ -137,7 +143,7 @@ void posCallback(const geometry_msgs::Vector3& msg){
 
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	if (corner_flag == false && idx > 8 )  d_flag = true;
+	if (corner_flag == false)  d_flag = true;
 	
 	if (d_flag == true)
 	{
@@ -224,6 +230,29 @@ void vec_delete_float(std::vector<float> &vec)
 
 void yaw_ctrl()
 {
+	// update index by using dot product ===
+	// //vector 1 : robot - wp[idx]
+	// vec_delete_float(vector1);
+	// vector1.push_back(wp_r_x[idx]-pos.x);
+	// vector1.push_back(wp_r_y[idx]-pos.y);
+
+	// //vector 2 : wp[idx] - wp[idx+1]
+	// vec_delete_float(vector2);
+	// // gradient = (wp_r_y[idx+1]-wp_r_y[idx])/(wp_r_x[idx+1]-wp_r_x[idx]);
+	// // vector2.push_back(1/(sqrt(1+pow(gradient,2))));
+	// // vector2.push_back(gradient/(sqrt(1+pow(gradient,2))));
+	// vector2.push_back(wp_r_x[idx+1]-wp_r_x[idx]);
+	// vector2.push_back(wp_r_y[idx+1]-wp_r_y[idx]);
+
+	// // Dot_ Product
+	// dp_val = (vector1[0] * vector2[0]) + (vector1[1] * vector2[1]);
+	
+	// if( dp_val<0)idx++;
+	//==============================================
+
+	// std::cout << "index : " << idx <<std::endl;
+	// std::cout << "vector1_x : " << vector1[0] << "\tvector1_y : " << vector1[1] << "\tvector2_x : " << vector2[0] << "\tvector2_y : " << vector2[1] << "\tDP_theta : "<< dp_val << std::endl;
+	// std::cout << "dp_val: " << dp_val <<std::endl; 
 	if ( g_flag%2 == 0 )
 	{
 		// y
@@ -263,14 +292,20 @@ void yaw_ctrl()
 	if ( idx < wp_num-1 )
 	{
 		// Compare global robot origin to first waypoint [W]
-		err_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x)) * 180 / M_PI;
+		// err_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x)) * 180 / M_PI;
+		// // std::cout << "err_psi_1_before_if : " << err_psi_1 << std::endl;
+		// if (err_psi_1 < 0) err_psi_1 += 90;
+		// else if (err_psi_1 >= 0) err_psi_1 -= 90; 
+		// std::cout << "err_psi_1_before : " << err_psi_1 << std::endl;
 		
-		if (err_psi_1 < 0) err_psi_1 += 90;
-		else if (err_psi_1 >= 0) err_psi_1 -= 90; 
-		
+		// JH idea 
+		des_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x)) * 180 / M_PI;
+		err_psi_1 = des_psi_1 - cur_psi;
+		std::cout << "err_psi_1_after____ : " << err_psi_1 << std::endl;
 		// Compare second waypoint to first waypoint [W]
 		des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI;
 		err_psi_2 = des_psi_2- cur_psi;
+		
 
 		distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));	
 		if ( distance > max_dist ) distance = max_dist;

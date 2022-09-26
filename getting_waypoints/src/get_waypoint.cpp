@@ -21,8 +21,18 @@ auto pub_time =std::chrono::high_resolution_clock::now();
 // K means function declaration [W]
 Mat K_Means(Mat Input, int K);
 
+// variations for corner dection algorithm [W]
+int mask_count = 0;
+int line_count = 0;
+
+
+
+
 int main(int argc, char **argv)
 {
+
+    // when straight line, false
+    corner_flag.data = false;
     // save image for each name [W]
     time_t timer;
     struct tm* t;
@@ -99,7 +109,8 @@ int main(int argc, char **argv)
         cos_ic = cos(t265_att.z);
         sin_ic = sin(t265_att.z);
 
-        // Mat src = imread("/home/mrl/.ros/sample_img_43.32.png", 1);      
+        //sample_img_43.32.png
+        // Mat src = imread("/home/mrl/.ros/sample_img_49.30.png", 1);      
         Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
         
         Mat perspective_mat = getPerspectiveTransform(src_p, dst_p);
@@ -129,6 +140,8 @@ int main(int argc, char **argv)
         
         // BGR -> HSV [HW]
         cvtColor(res, hsv, COLOR_BGR2HSV);
+        // cvtColor(mask, mask, CV_BGR2GRAY);
+        // cvtColor(colorMat, greyMat, CV_BGR2GRAY);
         
         // HSV detect [W]
         // mask : color 1 is red / color 2 is blue - demo version [W]
@@ -149,17 +162,19 @@ int main(int argc, char **argv)
 
         Mat img_erode;
         Mat img_dilate;
-	    
-        // Mat mask = imread("/home/mrl/.ros/mask_38.20.png", 0);
+	    Mat mask_line = Mat::zeros(720, 1280, CV_8UC1);
+
+
+        // Mat mask = imread("/home/mrl/.ros/mask_29.6.png", 0);
 	    erode(mask, img_erode, Mat::ones(Size(3,3),CV_8UC1),Point(-1,-1),3);
         dilate(img_erode, img_dilate, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1), 3);
-
+        std::cout << src.channels() <<std::endl;
         // imwrite("after_erode.png",img_erode);
         // imwrite("after_dilate.png",img_dilate);
 
         mask = img_dilate;
         // find contours [HW]
-        line(mask, Point(0,300),Point(300,720),Scalar(0,0,0), 1); 
+        // line(mask, Point(0,300),Point(300,720),Scalar(0), 1); 
     
         findContours(mask, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
         drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
@@ -237,17 +252,37 @@ int main(int argc, char **argv)
 
 
 
-        // when straight line, false
-        corner_flag.data = false;
-
         // visualization representive line [W]
         line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
+        line(mask_line, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(255), 3);
+        // line(mask_line, Point(1228,0),Point(790,720),Scalar(255,255,255), 1);
         // }
-        if ( abs(gradient) <= 1.5 ) corner_flag.data = true;
-        else if ( abs(gradient) > 1.5 ) corner_flag.data = false;
+
+        // Corner detection Algorithm v_1 [JH]
+        // if ( abs(gradient) <= 1.5 ) corner_flag.data = true;
+        // else if ( abs(gradient) > 1.5 ) corner_flag.data = false;
         std::cout << "gradient :  " << gradient << "    corner flag : "<< corner_flag.data << std::endl;  
 
-
+        // Corner detection Algorithm v_2 [W]
+        Mat mask_combination;
+        bitwise_or(mask, mask_line, mask_combination);
+        for (int y = 0; y < mask.rows; y++)
+		    for (int x = 0; x < mask.cols; x++)
+		    {
+			    if(mask.at<int>(y,x)==255)
+                mask_count ++;
+			}
+        for (int y = 0; y < mask.rows; y++)
+		    for (int x = 0; x < mask.cols; x++)
+		    {
+			    if(mask_combination.at<int>(y,x)==255)
+                line_count ++;
+			}
+        std::cout << "a : "<<mask_count << std::endl;
+        std::cout << "b : "<<line_count << std::endl;
+        
+        if ((line_count - mask_count) >= 200 & fabs(gradient) <= 1.5) corner_flag.data = true;
+        else if (idx>=8)  corner_flag.data = false;
         // if our's objective line is straight [W]
         if (corner_flag.data == false) // straight 
         {
@@ -353,6 +388,8 @@ int main(int argc, char **argv)
         vec_delete_float(wp_y);
         vec_delete(bottom_x);
         vec_delete_p(contours_sum);
+        mask_count = 0;
+        line_count = 0;
         //----------------------------
        
         // To save image 
@@ -363,13 +400,15 @@ int main(int argc, char **argv)
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
         // save image name depends on time [JH]
-        // imwrite(filename,res);
-        // imwrite(filename_mask,mask);
+        imwrite(filename,res);
+        imwrite(filename_mask,mask);
 
         // save image [JH]
-        imwrite("res.png", res);     
-        imwrite("mask.png", mask);     
-
+        // imwrite("res.png", res);     
+        // imwrite("mask.png", mask);     
+        imwrite("mask_line.png", mask_line); 
+        imwrite("mask_com.png", mask_combination); 
+        
         ros::spinOnce();        
     }
     return 0;
