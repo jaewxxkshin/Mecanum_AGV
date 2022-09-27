@@ -13,6 +13,7 @@ int color = 1;
 void pos_Callback(const geometry_msgs::Vector3& msg);
 void rot_Callback(const geometry_msgs::Quaternion& msg);
 void idxCallback(const std_msgs::Int16& msg);
+// For counting time [JH]
 // ---------------------------------------------------------------------
 auto k_time =std::chrono::high_resolution_clock::now();
 auto start =std::chrono::high_resolution_clock::now();
@@ -21,18 +22,11 @@ auto pub_time =std::chrono::high_resolution_clock::now();
 // K means function declaration [W]
 Mat K_Means(Mat Input, int K);
 
-// variations for corner dection algorithm [W]
-int mask_count = 0;
-int line_count = 0;
-
-
-
-
 int main(int argc, char **argv)
 {
-
-    // when straight line, false
-    corner_flag.data = false;
+    // corner flag [JH]
+    corner_flag.data = false; // straight line -> false, corner -> true
+    
     // save image for each name [W]
     time_t timer;
     struct tm* t;
@@ -41,20 +35,15 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     // ROS Publisher
-    // validation of rotation trajectory [W] ===================================
-    ros::Publisher validation_x = nh.advertise<std_msgs::Float32MultiArray>("ele_x", wp_num);
-    ros::Publisher validation_y = nh.advertise<std_msgs::Float32MultiArray>("ele_y", wp_num);
-    //==========================================================================
-    ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
     ros::Publisher waypoints_r_x = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x", wp_num);
     ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);
+    ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
     ros::Publisher d435_origin_pub = nh.advertise<std_msgs::Float32MultiArray>("d435_origin", wp_num);
     
     // ROS Subscriber [W]
     ros::Subscriber d435_pos = nh.subscribe("/d435_pos",5,pos_Callback);
     ros::Subscriber d435_rot = nh.subscribe("/d435_rot",5,rot_Callback);
     ros::Subscriber test = nh.subscribe("/pub_idx",100,idxCallback);
-    
     
     //get camera info
     rs2::pipeline pipe;
@@ -83,11 +72,12 @@ int main(int argc, char **argv)
 
     while(ros::ok())
     {   
-        timer= time(NULL);
-        t= localtime(&timer);
-        start=std::chrono::high_resolution_clock::now();
+        // for counting time [JH]
+        timer = time(NULL);
+        t = localtime(&timer);
+        start = std::chrono::high_resolution_clock::now();
         
-        
+        // get image from d435 [JH]
         frames = pipe.wait_for_frames();
         color_frame = frames.get_color_frame();
 
@@ -95,11 +85,6 @@ int main(int argc, char **argv)
         set_array(wp_r_x, wp_num);
         set_array(wp_r_y, wp_num); 
         set_array(d435_origin, 2);
-
-        //===[W]
-        set_array(ele_x, wp_num);
-        set_array(ele_y, wp_num); 
-        //===
 
         // to calculate global waipoint's coordinate [W]
         x_ic = pos.x;
@@ -109,7 +94,6 @@ int main(int argc, char **argv)
         cos_ic = cos(t265_att.z);
         sin_ic = sin(t265_att.z);
 
-        //sample_img_43.32.png
         // Mat src = imread("/home/mrl/.ros/sample_img_49.30.png", 1);      
         Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
         
@@ -118,20 +102,14 @@ int main(int argc, char **argv)
         // perspective matrix [W]
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
 
-        //read image [HW]
+        // read image [HW]
         // Mat dst = imread("/home/mrl/.ros/sample_img_28.3.png", 1);
 
-        char filename_sample_img[200];
-        sprintf(filename_sample_img, "sample_img_%d.%d.png", t->tm_min, t->tm_sec);
-
-
-         
-        // imwrite(filename_sample_img,src); 
-
-
+        // K_Means function [JH]
         int Clusters = 9;
         Mat res = K_Means(dst, Clusters);        
 
+        // counting time for kmeans [JH]
         k_time=std::chrono::high_resolution_clock::now();
         
         // For remove BEV edge [HW]
@@ -140,45 +118,38 @@ int main(int argc, char **argv)
         
         // BGR -> HSV [HW]
         cvtColor(res, hsv, COLOR_BGR2HSV);
-        // cvtColor(mask, mask, CV_BGR2GRAY);
-        // cvtColor(colorMat, greyMat, CV_BGR2GRAY);
-        
+
+        // ========================================================================         
         // HSV detect [W]
         // mask : color 1 is red / color 2 is blue - demo version [W]
-        //========================================================================    
-        if(color ==1)
+        if(color ==1) // red
         {
           inRange(hsv, lower_red, upper_red, mask);  
           inRange(hsv, lower_red_sc, upper_red_sc, mask_sc);
           bitwise_or(mask, mask_sc, mask);
           bitwise_and(res, res, image, mask);
         }
-        else if (color ==2)
+        else if (color ==2) // blue
         {
           inRange(hsv, lower_blue, upper_blue, mask);  
           bitwise_and(res, res, image, mask);
         }
-        //========================================================================
-
-        Mat img_erode;
-        Mat img_dilate;
-	    Mat mask_line = Mat::zeros(720, 1280, CV_8UC1);
+        // ========================================================================
 
 
+        // Image Morpology [W]
         // Mat mask = imread("/home/mrl/.ros/mask_29.6.png", 0);
 	    erode(mask, img_erode, Mat::ones(Size(3,3),CV_8UC1),Point(-1,-1),3);
         dilate(img_erode, img_dilate, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1), 3);
-        std::cout << src.channels() <<std::endl;
+        // std::cout << src.channels() <<std::endl;
         // imwrite("after_erode.png",img_erode);
         // imwrite("after_dilate.png",img_dilate);
-
         mask = img_dilate;
+
         // find contours [HW]
         // line(mask, Point(0,300),Point(300,720),Scalar(0), 1); 
-    
         findContours(mask, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
         drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
-    
         // imwrite("contour.png", image);  
 
         // get contour's y_val( every y ), x_val (every x ) [JH]
@@ -202,7 +173,7 @@ int main(int argc, char **argv)
         float max = *max_element(y_val.begin(),y_val.end());
         float x_left = *min_element(x_val.begin(),x_val.end());
         float x_right = *max_element(x_val.begin(),x_val.end());
-         
+        
         // contour's bottom x value [JH]
         for ( int i = 0; i < contours.size(); i++)
         {
@@ -231,13 +202,11 @@ int main(int argc, char **argv)
 
         // fitLine() function to detect representive line [W]
         fitLine(contours_sum, detected_line, CV_DIST_L2, 0, 0.01, 0.01);
-        vx = detected_line[0];
-        vy = detected_line[1];
-        
-        gradient = vy/vx;
-
-        x = float(detected_line[2]);
-        y = float(detected_line[3]);
+        vx = detected_line[0]; // fitline vector x
+        vy = detected_line[1]; // fitline vector y
+        gradient = vy/vx; //gradient of fitline
+        x = float(detected_line[2]); // point of fitline
+        y = float(detected_line[3]); // point of fitline
     
         // get (x,y) of detected line in converted coordinate [JH]
         converted_x = convert_x(x);
@@ -250,39 +219,37 @@ int main(int argc, char **argv)
         upper_x = float(-vx/vy*(top_y-converted_y)+converted_x);
         lower_x = float(-vx/vy*(-1*converted_y) + converted_x);
 
-
-
         // visualization representive line [W]
         line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
         line(mask_line, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(255), 3);
-        // line(mask_line, Point(1228,0),Point(790,720),Scalar(255,255,255), 1);
-        // }
 
         // Corner detection Algorithm v_1 [JH]
         // if ( abs(gradient) <= 1.5 ) corner_flag.data = true;
         // else if ( abs(gradient) > 1.5 ) corner_flag.data = false;
-        std::cout << "gradient :  " << gradient << "    corner flag : "<< corner_flag.data << std::endl;  
+        // std::cout << "gradient :  " << gradient << "    corner flag : "<< corner_flag.data << std::endl;  
 
         // Corner detection Algorithm v_2 [W]
-        Mat mask_combination;
         bitwise_or(mask, mask_line, mask_combination);
+
         for (int y = 0; y < mask.rows; y++)
 		    for (int x = 0; x < mask.cols; x++)
 		    {
 			    if(mask.at<int>(y,x)==255)
                 mask_count ++;
 			}
+        
         for (int y = 0; y < mask.rows; y++)
 		    for (int x = 0; x < mask.cols; x++)
 		    {
 			    if(mask_combination.at<int>(y,x)==255)
                 line_count ++;
 			}
-        std::cout << "a : "<<mask_count << std::endl;
-        std::cout << "b : "<<line_count << std::endl;
-        
+        // std::cout << "a : "<<mask_count << std::endl;
+        // std::cout << "b : "<<line_count << std::endl;
+
         if ((line_count - mask_count) >= 200 & fabs(gradient) <= 1.5) corner_flag.data = true;
         else if (idx>=8)  corner_flag.data = false;
+        
         // if our's objective line is straight [W]
         if (corner_flag.data == false) // straight 
         {
@@ -293,11 +260,9 @@ int main(int argc, char **argv)
                 wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i]*dist_pix  - sin_ic * wp_y[i]*dist_pix; //* distance_of_pixel
                 wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i]*dist_pix  + cos_ic * wp_y[i]*dist_pix;
             }
-            // std::cout << "Sss" << std::endl;
-            // waypoints_r_x.publish(wp_r_x);
-            // waypoints_r_y.publish(wp_r_y);   
         }
-        // if our's objective lins is radius [W]
+        
+        // if our's objective lines is radius [W]
         else if(corner_flag.data == true) // rotation
         {   
             for(int i=0; i<wp_num; i++) // circle waypoint y
@@ -312,7 +277,6 @@ int main(int argc, char **argv)
                 {
                     float theta = i * wp_num * (PI / 180); //9/10 
                     wp_x.push_back(convert_x(mean_bottom_x - (top_y - top_y*cos(theta))));
-                    // wp_x.push_back(conver_x(mean_bottom_x) - top_y *cos(theta));
                 }
             } 
             else if (vy/vx < 0) // turn right - waypoint x
@@ -323,76 +287,43 @@ int main(int argc, char **argv)
                     wp_x.push_back(convert_x(mean_bottom_x + (top_y - top_y*cos(theta))));
                 }
             }
-
             for(int i=0; i<wp_num; i++)
             {
                 wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i]*dist_pix  - sin_ic * wp_y[i]*dist_pix;// * distance_of_pixel;
                 wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i]*dist_pix  + cos_ic * wp_y[i]*dist_pix;// * distance_of_pixel;
             }
-
-            // circle(res, Point(inv_convert_x(mean_bottom_x), inv_convert_y(top_y)), 5, Scalar(255,0,0), 3);
-            // line(res, Point(inv_convert_x(mean_bottom_x -top_y),inv_convert_y(top_y)),Point(inv_convert_x(wp_x[9]),inv_convert_y(wp_y[9])),Scalar(0,0,0), 1);
-            // line(res, Point(inv_convert_x(mean_bottom_x -top_y),inv_convert_y(top_y)),Point(inv_convert_x(wp_x[0]),inv_convert_y(wp_y[0])),Scalar(0,0,0), 1);
-            // waypoints_r_x.publish(wp_r_x);
-            // waypoints_r_y.publish(wp_r_y);
-            // while(true)
-            // {
-            //     std::cout << "cdc" << std::endl;
-            //     if (idx >= 4) break;
-            // }
-                // ros::Subscriber test = nh.subscribe("/pub_idx",100,idxCallback);
-                // std::cout << idx << std::endl;
-                // if (idx >= 4) break;
-            // }
         }
-
-        // for(int i=0; i<wp_num; i++)
-        // {
-        //     wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-        //     wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
-        // }
-
+        // visualization waypoint
         for(int i=0; i<wp_num; i++)
         {
             circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
         }
-        //===[W]
-        for(int i=0; i<wp_num; i++)
-        {
-            ele_x.data[i] =  wp_x[i]*dist_pix;
-            ele_y.data[i] =  wp_y[i]*dist_pix;
-        }
-        //===
+
         // Publish topics [W]   
-        //-----------------------------------   
         corner_decision.publish(corner_flag);
         waypoints_r_x.publish(wp_r_x);
         waypoints_r_y.publish(wp_r_y);
         d435_origin_pub.publish(d435_origin);
-        //-----------------------------------
-        
-        //===[W]
-        validation_x.publish(ele_x);
-        validation_y.publish(ele_y);
-        //===   
+
         pub_time=std::chrono::high_resolution_clock::now();
         
         std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
-        // std:: cout <<"all process: "<< chrono::duration_cast<chrono::milliseconds>(pub_time - start).count() <<"ms"<< std::endl;
         
         // vector initialization [W]
-        //----------------------------
         vec_delete(x_val);
         vec_delete(y_val);
         vec_delete_float(wp_x);
         vec_delete_float(wp_y);
         vec_delete(bottom_x);
         vec_delete_p(contours_sum);
+
         mask_count = 0;
         line_count = 0;
-        //----------------------------
-       
-        // To save image 
+
+        // naming by time [JH]
+        char filename_sample_img[200];
+        sprintf(filename_sample_img, "sample_img_%d.%d.png", t->tm_min, t->tm_sec);
+
         char filename[200];
         sprintf(filename, "res_%d.%d.png", t->tm_min, t->tm_sec);
 
@@ -400,14 +331,15 @@ int main(int argc, char **argv)
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
         // save image name depends on time [JH]
+        imwrite(filename_sample_img,src); 
         imwrite(filename,res);
         imwrite(filename_mask,mask);
 
         // save image [JH]
         // imwrite("res.png", res);     
         // imwrite("mask.png", mask);     
-        imwrite("mask_line.png", mask_line); 
-        imwrite("mask_com.png", mask_combination); 
+        // imwrite("mask_line.png", mask_line); 
+        // imwrite("mask_com.png", mask_combination); 
         
         ros::spinOnce();        
     }
@@ -418,7 +350,6 @@ void pos_Callback(const geometry_msgs::Vector3& msg){
 	pos.x=msg.x;
 	pos.y=msg.y;
 	pos.z=-msg.z;
-	//ROS_INFO("Translation - [x: %f  y:%f  z:%f]",pos.x, pos.y, pos.z);
 }
 
 
@@ -432,7 +363,6 @@ void rot_Callback(const geometry_msgs::Quaternion& msg)
     tf::Quaternion quat;
 	tf::quaternionMsgToTF(rot,quat);
 	tf::Matrix3x3(quat).getRPY(t265_att.x,t265_att.y,t265_att.z);	
-    //ROS_INFO("Rotation - [1: %f  2:%f  3:%f]",rot.x, rot.y, rot.z);
 }
 void idxCallback(const std_msgs::Int16& msg)
 {
@@ -456,9 +386,6 @@ Mat K_Means(Mat Input, int K) {
 	Mat centers;
     // Need to modify function arguement [W]
 	kmeans(samples, K, labels, TermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 10, 0.1), attempts, KMEANS_PP_CENTERS, centers);
-
-    
-
 
 	Mat new_image(Input.size(), Input.type());
 	for (int y = 0; y < Input.rows; y++)

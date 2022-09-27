@@ -59,6 +59,11 @@ geometry_msgs::Vector3 t265_att;
 float dist_pix = 0.00132;
 //=====================
 
+// variations for corner dection algorithm [W]
+int mask_count = 0;
+int line_count = 0;
+
+// variable for indexing update
 int idx = 0;
 bool img_flag = true; 
 
@@ -162,6 +167,11 @@ void set_array(std_msgs::Float32MultiArray &arr, const int &n)
 
 // Matrix for img_proc [W]
 Mat src, dst, image, mask, mask_sc, res, hsv, points, labels, centers;
+Mat img_erode;
+Mat img_dilate;
+Mat mask_line = Mat::zeros(720, 1280, CV_8UC1);
+Mat mask_combination;
+        
 
 // point for warp
 Point2f src_p[4], dst_p[4];

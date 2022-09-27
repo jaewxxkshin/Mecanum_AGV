@@ -17,7 +17,6 @@
 #include "nav_msgs/Odometry.h"
 #include <std_msgs/Bool.h>
 
-
 #define wp_num 10
 #define max_dist 0.3
 #define max_k 1.0
@@ -27,6 +26,7 @@ std_msgs::Float32MultiArray arr_psi;
 std_msgs::Int16 idx_ros;
 std_msgs::Int16 g_flag_ros;
 std_msgs::Float32 dist_ros;
+std_msgs::Float32 k_ros;
 
 geometry_msgs::Vector3 pos;
 geometry_msgs::Quaternion rot;
@@ -59,6 +59,7 @@ float prev_psi = 0;
 float cur_psi = 0;
 float k = 0;
 float x_ic, y_ic = 0;
+
 // jh 
 double temp_y1 = 0.0;
 double temp_y2 = 0.0;
@@ -87,8 +88,7 @@ void cal_rot_wp();
 void yaw_ctrl();
 void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision);
 // ----------------------------------------------------------------------------
-std_msgs::Float32MultiArray wp_r_x_magv;
-std_msgs::Float32MultiArray wp_r_y_magv;
+
 
 int main(int argc, char **argv)
 {   
@@ -96,18 +96,16 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;  
 
 	wp_set_sub.data.resize(wp_num*2);
-	arr_psi.data.resize(1);
-	wp_r_x_magv.data.resize(wp_num);
-	wp_r_y_magv.data.resize(wp_num);
+	arr_psi.data.resize(5);
 	
 	ros::Publisher pub_psi = nh.advertise<std_msgs::Float32MultiArray>("pub_psi", 1000);
 	ros::Publisher pub_idx = nh.advertise<std_msgs::Int16>("pub_idx", 1000);
 	ros::Publisher pub_g_flag = nh.advertise<std_msgs::Int16>("g_flag", 1000);
 	ros::Publisher pub_dist = nh.advertise<std_msgs::Float32>("pub_dist", 1000);
-	ros::Publisher waypoints_r_x_magv = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x_magv", wp_num);
-    ros::Publisher waypoints_r_y_magv = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y_magv", wp_num);
-    
 
+	ros::Publisher pub_k = nh.advertise<std_msgs::Float32>("pub_k", 1000);
+	
+    
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);
 	ros::Subscriber waypoint_r_x_sub =nh.subscribe("wp_r_x",100,wp_r_x_Callback);
@@ -123,8 +121,7 @@ int main(int argc, char **argv)
 		pub_idx.publish(idx_ros);
 		pub_g_flag.publish(g_flag_ros);
 		pub_dist.publish(dist_ros);
-		waypoints_r_y_magv.publish(wp_r_y_magv);
-		waypoints_r_x_magv.publish(wp_r_x_magv);
+		pub_k.publish(k_ros);
 		ros::spinOnce();
 		loop_rate.sleep();
 	}
@@ -143,70 +140,59 @@ void posCallback(const geometry_msgs::Vector3& msg){
 
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	if (corner_flag == false)  d_flag = true;
+	if (corner_flag == false)	d_flag = true; // straight line -> d_flag = true
 	
 	if (d_flag == true)
 	{
-		idx_flag = false;
+		idx_flag = false; 
+		// wp update ====================
 		vec_delete_float(wp_r_x);
 		for (int i = 0; i < wp_num; i++) 
-			{
-			wp_r_x.push_back(array->data[i]);	
-			}
+		{
+		wp_r_x.push_back(array->data[i]);	
+		}
+		// ==============================
 		idx = 0;
 		prev_corner == false; // straight 
 	}
 	// straight line -> corner 
-	if ( prev_corner == false && corner_flag == true ) idx_flag = true;
+	if ( prev_corner == false && corner_flag == true ) idx_flag = true; // straight line -> corner : idx_flag = true
+	// it means when the robot detects corner, idx_flag+idx -> g_flag ( for x->y )
 	if (idx_flag == true && idx >4)	g_flag ++;
 	g_flag_ros.data = g_flag;
 
 	if (corner_flag == true) 
 	{
-		d_flag = false;
-		prev_corner == true; // corner 
+		d_flag = false; // don't update wp 
+		prev_corner == true;
 	}
 
-	std::cout << "corner flag : \t" << corner_flag << "\td_flag : \t" << d_flag << std::endl;
+	// std::cout << "corner flag : \t" << corner_flag << "\td_flag : \t" << d_flag << std::endl;
+	
 	flag = 1;
 	// idx will initialized when new waypoint is created
-	
-	for(int i=0; i<wp_num; i++)
-    {
-        wp_r_x_magv.data[i] =  wp_r_x[i];
-        // wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i] * distance_of_pixel + cos_ic * wp_y[i] * distance_of_pixel;
-    }
-
-	
-
 }
 
 void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	if (corner_flag == false) d_flag = true; //&& idx > 8)  d_flag = true;
+	if (corner_flag == false) d_flag = true; // straight line -> d_flag = true
 	if (d_flag == true)
 	{
+		// wp update ====================		
 		vec_delete_float(wp_r_y);
 		for (int i = 0; i < wp_num; i++) 
 		{
 			wp_r_y.push_back(array->data[i]);	
 		}
+		// ==============================
 	}
-	if (corner_flag == true) d_flag = false;
-	for(int i=0; i<wp_num; i++)
-    {
-        // wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i] * distance_of_pixel - sin_ic * wp_y[i] * distance_of_pixel;
-        wp_r_y_magv.data[i] = wp_r_y[i];
-    }
-	// std::cout << " wp_R_Y : \t" << wp_r_y[5] << std::endl;
-
+	if (corner_flag == true) d_flag = false; // corner -> d_flag = false : don't update wp
 }
 
 void originCallback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	x_ic = array->data[0];
-	y_ic = array->data[1];
-	
+	// x_ic = array->data[0];
+	// y_ic = array->data[1];
 }
 
 
@@ -229,8 +215,9 @@ void vec_delete_float(std::vector<float> &vec)
 }
 
 void yaw_ctrl()
-{
-	// update index by using dot product ===
+{	
+	
+	// update index by using dot product =========================================
 	// //vector 1 : robot - wp[idx]
 	// vec_delete_float(vector1);
 	// vector1.push_back(wp_r_x[idx]-pos.x);
@@ -253,18 +240,19 @@ void yaw_ctrl()
 	// std::cout << "index : " << idx <<std::endl;
 	// std::cout << "vector1_x : " << vector1[0] << "\tvector1_y : " << vector1[1] << "\tvector2_x : " << vector2[0] << "\tvector2_y : " << vector2[1] << "\tDP_theta : "<< dp_val << std::endl;
 	// std::cout << "dp_val: " << dp_val <<std::endl; 
+	//============================================================================
+
 	if ( g_flag%2 == 0 )
 	{
-		// y
  		gradient = -(wp_r_x[idx+1]-wp_r_x[idx])/(wp_r_y[idx+1]-wp_r_y[idx]);
 		// f1(x)
 		// double tmp_x = pos.x;
 		// double tmp_y = pos.y;
 		temp_y1 = gradient *(pos.x - wp_r_x[idx])+ wp_r_y[idx];
 		// f2(x)
-		temp_y2 = gradient *(pos.x - wp_r_x[idx+1])+ wp_r_y[idx+1];
-		if (wp_r_y[1] - wp_r_y[0]>0 && pos.y > temp_y1 ) idx++; //&& pos.y <temp_y2 ) idx ++;
-		if (wp_r_y[1] - wp_r_y[0]<0 && pos.y < temp_y1 ) idx++;
+		// temp_y2 = gradient *(pos.x - wp_r_x[idx+1])+ wp_r_y[idx+1];
+		if (wp_r_y[1] - wp_r_y[0]>0 && pos.y > temp_y1 ) idx++; // y++
+		if (wp_r_y[1] - wp_r_y[0]<0 && pos.y < temp_y1 ) idx++; // y--
 	}
 
 	if ( g_flag%2 == 1 )
@@ -278,17 +266,12 @@ void yaw_ctrl()
 		temp_x1 = gradient *(pos.y - wp_r_y[idx])+ wp_r_x[idx];
 		// f2(x)
 		temp_x2 = gradient *(pos.y - wp_r_y[idx+1])+ wp_r_x[idx+1];
-		if (wp_r_x[1] - wp_r_x[0]>0 && pos.x > temp_x1 ) idx++; //&& pos.y <temp_y2 ) idx ++;
+		if (wp_r_x[1] - wp_r_x[0]>0 && pos.x > temp_x1 ) idx++; 
 		if (wp_r_x[1] - wp_r_x[0]<0 && pos.x < temp_x1 ) idx++;
-		
-		// if ( pos.x < temp_x1 ) idx++;//&& pos.y <temp_x2 ) idx ++;
 	}
 
-	//float r =0.02375;
-	//if( pow((wp_r_x[idx] - pos.x),2) + pow((wp_r_y[idx]-pos.y),2) < pow(r,2)) idx++;
-	
-	// cur_psi = t265_att.z + M_PI/2;
 	cur_psi = t265_att.z * 180 / M_PI + 90;
+
 	if ( idx < wp_num-1 )
 	{
 		// Compare global robot origin to first waypoint [W]
@@ -301,31 +284,56 @@ void yaw_ctrl()
 		// JH idea 
 		des_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x)) * 180 / M_PI;
 		err_psi_1 = des_psi_1 - cur_psi;
-		std::cout << "err_psi_1_after____ : " << err_psi_1 << std::endl;
+		
+		// std::cout << "err_psi_1_after____ : " << err_psi_1 << std::endl;
 		// Compare second waypoint to first waypoint [W]
 		des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI;
+		if (des_psi_2 < 0)
+		{
+			des_psi_2 += 360.0;
+		}
 		err_psi_2 = des_psi_2- cur_psi;
-		
 
-		distance = sqrt(pow((wp_r_x[idx]-pos.x),2)+pow((wp_r_y[idx]-pos.y),2));	
+		// std::cout << "pos.x : " << pos.x << "\tpos.y : " << pos.y << std::endl;
+		distance = sqrt( pow((wp_r_x[idx]-pos.x),2) + pow((wp_r_y[idx]-pos.y),2) );	
 		if ( distance > max_dist ) distance = max_dist;
+		
 		dist_ros.data = distance;
 
-		k = distance*(max_k/max_dist);
+		k = distance * ( max_k / max_dist );
 		if(fabs(k)>1) k = k/fabs(k);
+
+		k_ros.data = k;
+
 		// 0.1 -> ++0.1
 		// if (corner_flag == false) 
-		err_psi = k*err_psi_1 + (1-k)*err_psi_2;
-		// if (corner_flag == true) err_psi = err_psi_2;
+		err_psi = k * err_psi_1 + (1-k) * err_psi_2;
+		err_psi_dot = p_psi * err_psi;
 
-		// if (idx==wp_num-2) prev_psi = err_psi;
 	}
-	// else if (idx >=wp_num-1) err_psi = prev_psi;
+	else if ( idx == wp_num-1 )
+	{
+		des_psi_2 = atan2((wp_r_y[idx] - wp_r_y[idx-1]),(wp_r_x[idx] - wp_r_x[idx-1])) * 180 / M_PI;
+		if (des_psi_2 < 0)
+		{
+			des_psi_2 += 360.0;
+		}
+		err_psi_2 = des_psi_2- cur_psi;
+		err_psi = err_psi_2;
+		err_psi_dot = 2 * err_psi;
+
+	}
+
 	// d gain : - d_psi*t265_ang_vel.z;
 
-	err_psi_dot = p_psi*err_psi ;
 
-	arr_psi.data[0] = err_psi_dot;
+
+	arr_psi.data[0] = err_psi_1;
+	arr_psi.data[1] = err_psi_2;
+	arr_psi.data[2] = err_psi;
+	arr_psi.data[3] = cur_psi;
+	arr_psi.data[4] = err_psi_dot;
+	
 
 	idx_ros.data = idx;
 }
@@ -333,5 +341,13 @@ void yaw_ctrl()
 void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision)
 {
 	corner_flag = decision->data;
-	//std::cout << "corner_flag : " << corner_flag <<std::endl;
 }
+
+
+
+
+
+
+
+
+
