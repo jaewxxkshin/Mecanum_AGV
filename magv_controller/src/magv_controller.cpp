@@ -149,7 +149,7 @@ void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 		vec_delete_float(wp_r_x);
 		for (int i = 0; i < wp_num; i++) 
 		{
-		wp_r_x.push_back(array->data[i]);	
+			wp_r_x.push_back(array->data[i]);	
 		}
 		// ==============================
 		idx = 0;
@@ -184,6 +184,7 @@ void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 		{
 			wp_r_y.push_back(array->data[i]);	
 		}
+		idx = 0;
 		// ==============================
 	}
 	if (corner_flag == true) d_flag = false; // corner -> d_flag = false : don't update wp

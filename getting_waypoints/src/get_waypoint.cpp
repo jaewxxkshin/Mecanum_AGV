@@ -46,12 +46,12 @@ int main(int argc, char **argv)
     ros::Subscriber test = nh.subscribe("/pub_idx",100,idxCallback);
     
     //get camera info
-    rs2::pipeline pipe;
-    rs2::config cfg;
-    rs2::frameset frames;
-    rs2::frame color_frame;   
-    cfg.enable_stream(RS2_STREAM_COLOR, 1280,720, RS2_FORMAT_BGR8, 30);
-    pipe.start(cfg);    
+    // rs2::pipeline pipe;
+    // rs2::config cfg;
+    // rs2::frameset frames;
+    // rs2::frame color_frame;   
+    // cfg.enable_stream(RS2_STREAM_COLOR, 1280,720, RS2_FORMAT_BGR8, 30);
+    // pipe.start(cfg);    
 
     // perspective transform [JH]
     src_p[0] = Point2f(443,478);
@@ -65,10 +65,10 @@ int main(int argc, char **argv)
     dst_p[3] = Point2f(604+268/hf,720);
     
     // if it doesn't exist, it cause error [JH]
-    for(int i=0; i < 50; i ++)
-    {
-        frames = pipe.wait_for_frames();
-    }
+    // for(int i=0; i < 50; i ++)
+    // {
+    //     frames = pipe.wait_for_frames();
+    // }
 
     while(ros::ok())
     {   
@@ -78,8 +78,8 @@ int main(int argc, char **argv)
         start = std::chrono::high_resolution_clock::now();
         
         // get image from d435 [JH]
-        frames = pipe.wait_for_frames();
-        color_frame = frames.get_color_frame();
+        // frames = pipe.wait_for_frames();
+        // color_frame = frames.get_color_frame();
 
         // To avoid core dumped [W]
         set_array(wp_r_x, wp_num);
@@ -94,20 +94,23 @@ int main(int argc, char **argv)
         cos_ic = cos(t265_att.z);
         sin_ic = sin(t265_att.z);
 
-        // Mat src = imread("/home/mrl/.ros/sample_img_49.30.png", 1);      
-        Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
+        Mat src = imread("/home/mrl/.ros/sample_img_29.57.png", 1);      
+        // Mat src(Size(1280,720), CV_8UC3, (void*)color_frame.get_data(), Mat::AUTO_STEP);
         
         Mat perspective_mat = getPerspectiveTransform(src_p, dst_p);
 
         // perspective matrix [W]
         warpPerspective(src, dst, perspective_mat, Size(1280,720));
+        imwrite("bev.png",dst); 
 
         // read image [HW]
         // Mat dst = imread("/home/mrl/.ros/sample_img_28.3.png", 1);
 
         // K_Means function [JH]
         int Clusters = 9;
-        Mat res = K_Means(dst, Clusters);        
+        // Mat res = K_Means(dst, Clusters);
+        Mat res = dst;   
+        // imwrite("bev2.png",res);      
 
         // counting time for kmeans [JH]
         k_time=std::chrono::high_resolution_clock::now();
@@ -139,12 +142,12 @@ int main(int argc, char **argv)
 
         // Image Morpology [W]
         // Mat mask = imread("/home/mrl/.ros/mask_29.6.png", 0);
-	    erode(mask, img_erode, Mat::ones(Size(3,3),CV_8UC1),Point(-1,-1),3);
-        dilate(img_erode, img_dilate, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1), 3);
+	    // erode(mask, img_erode, Mat::ones(Size(3,3),CV_8UC1),Point(-1,-1),3);
+        // dilate(img_erode, img_dilate, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1), 3);
         // std::cout << src.channels() <<std::endl;
         // imwrite("after_erode.png",img_erode);
         // imwrite("after_dilate.png",img_dilate);
-        mask = img_dilate;
+        // mask = img_dilate;
 
         // find contours [HW]
         // line(mask, Point(0,300),Point(300,720),Scalar(0), 1); 
@@ -331,13 +334,15 @@ int main(int argc, char **argv)
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
         // save image name depends on time [JH]
-        imwrite(filename_sample_img,src); 
-        imwrite(filename,res);
-        imwrite(filename_mask,mask);
+        // imwrite(filename_sample_img,src); 
+        
+        
+        // imwrite(filename,res);
+        // imwrite(filename_mask,mask);
 
         // save image [JH]
-        // imwrite("res.png", res);     
-        // imwrite("mask.png", mask);     
+        imwrite("res.png", res);     
+        imwrite("mask.png", mask);     
         // imwrite("mask_line.png", mask_line); 
         // imwrite("mask_com.png", mask_combination); 
         
