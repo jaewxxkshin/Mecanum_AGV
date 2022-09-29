@@ -334,7 +334,7 @@ int main(int argc, char **argv)
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
 
         // save image name depends on time [JH]
-        // imwrite(filename_sample_img,src); 
+        imwrite(filename_sample_img,src); 
         
         
         // imwrite(filename,res);
