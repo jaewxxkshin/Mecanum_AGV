@@ -195,7 +195,7 @@ vector<int> bottom_x;
 
 // -------------------------------------------
 // Red_HSV_range (based on dataset)
-Scalar lower_red = Scalar(160, 90, 100);
+Scalar lower_red = Scalar(160, 100, 100);
 Scalar upper_red = Scalar(180, 255, 255);
 // Red_HSV_range (hsv of red - special case)
 Scalar lower_red_sc = Scalar(0, 100, 100);

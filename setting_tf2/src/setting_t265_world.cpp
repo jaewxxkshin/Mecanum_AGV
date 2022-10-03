@@ -15,8 +15,8 @@ int main(int argc, char **argv){
     static_transformStamped.header.stamp = ros::Time::now();
     static_transformStamped.header.frame_id="camera_odom_frame";
     static_transformStamped.child_frame_id="d435_world";
-    static_transformStamped.transform.translation.x=0.0526;
-    static_transformStamped.transform.translation.y=0.00856;
+    static_transformStamped.transform.translation.x=-0.3;
+    static_transformStamped.transform.translation.y=0.025;
     static_transformStamped.transform.translation.z=0;
     tf2::Quaternion quat;
     // rearrange origin of coordimate

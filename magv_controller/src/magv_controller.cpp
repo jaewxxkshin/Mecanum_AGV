@@ -48,6 +48,8 @@ bool straight_mode = 1;
 int p_psi = 5;
 double cmd_psi = 0;
 double distance = 0.;
+double ver_d = 0.;
+double theta_robot = 0.;
 double freq = 30;//controller loop frequency
 float err_psi = 0;
 float err_psi_1 = 0;
@@ -254,6 +256,7 @@ void yaw_ctrl()
 		// temp_y2 = gradient *(pos.x - wp_r_x[idx+1])+ wp_r_y[idx+1];
 		if (wp_r_y[1] - wp_r_y[0]>0 && pos.y > temp_y1 ) idx++; // y++
 		if (wp_r_y[1] - wp_r_y[0]<0 && pos.y < temp_y1 ) idx++; // y--
+		// distance = (wp_r_x[idx]-pos.x);
 	}
 
 	if ( g_flag%2 == 1 )
@@ -269,6 +272,7 @@ void yaw_ctrl()
 		temp_x2 = gradient *(pos.y - wp_r_y[idx+1])+ wp_r_x[idx+1];
 		if (wp_r_x[1] - wp_r_x[0]>0 && pos.x > temp_x1 ) idx++; 
 		if (wp_r_x[1] - wp_r_x[0]<0 && pos.x < temp_x1 ) idx++;
+		// distance = (wp_r_y[idx]-pos.y);
 	}
 
 	cur_psi = t265_att.z * 180 / M_PI + 90;
@@ -295,13 +299,27 @@ void yaw_ctrl()
 		}
 		err_psi_2 = des_psi_2- cur_psi;
 
-		// std::cout << "pos.x : " << pos.x << "\tpos.y : " << pos.y << std::endl;
-		distance = sqrt( pow((wp_r_x[idx]-pos.x),2) + pow((wp_r_y[idx]-pos.y),2) );	
-		if ( distance > max_dist ) distance = max_dist;
-		
-		dist_ros.data = distance;
+		//========================= JH something new k_distance==================
+		// wp_r_x[i] - pos.x , wp_r_y[i] - pos.y
+		// rot.z
 
-		k = distance * ( max_k / max_dist );
+		theta_robot = fabs(atan2 (wp_r_y[idx]-pos.y,wp_r_x[idx]-pos.x));
+		
+		theta_robot = theta_robot - t265_att.z;
+
+		if(fabs(theta_robot)>M_PI/2) theta_robot = M_PI - theta_robot; 
+		
+		distance = sqrt( pow((wp_r_x[idx]-pos.x),2) + pow((wp_r_y[idx]-pos.y),2) );	
+		ver_d = distance * cos(theta_robot);
+
+		//=======================================================================
+		// std::cout << "pos.x : " << pos.x << "\tpos.y : " << pos.y << std::endl;
+		// distance = sqrt( pow((wp_r_x[idx]-pos.x),2) + pow((wp_r_y[idx]-pos.y),2) );	
+		if ( ver_d > max_dist ) ver_d = max_dist;
+		
+		dist_ros.data = ver_d;
+
+		k = ver_d * ( max_k / max_dist );
 		if(fabs(k)>1) k = k/fabs(k);
 
 		k_ros.data = k;

@@ -16,8 +16,8 @@ int main(int argc, char **argv){
     static_transformStamped.header.frame_id="camera_pose_frame";
     static_transformStamped.child_frame_id="d435_frame";
     //put distance betweem t265 and d435
-    static_transformStamped.transform.translation.x=0.0526;
-    static_transformStamped.transform.translation.y=0.00856;
+    static_transformStamped.transform.translation.x=-0.3;
+    static_transformStamped.transform.translation.y=0.025;
     static_transformStamped.transform.translation.z=0;
     tf2::Quaternion quat;
     quat.setRPY(0.0, 0.0,  270*PI/180);
