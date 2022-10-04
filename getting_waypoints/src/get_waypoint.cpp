@@ -244,8 +244,8 @@ int main(int argc, char **argv)
 			    if(mask_combination.at<int>(y,x)==255)
                 line_count ++;
 			}
-        // std::cout << "a : "<<mask_count << std::endl;
-        // std::cout << "b : "<<line_count << std::endl;
+        std::cout << "a : "<<mask_count << std::endl;
+        std::cout << "b : "<<line_count << std::endl;
 
         if ((line_count - mask_count) >= 200 & fabs(gradient) <= 1.5) corner_flag.data = true;
         else if (idx>=8)  corner_flag.data = false;
@@ -317,9 +317,6 @@ int main(int argc, char **argv)
         vec_delete(bottom_x);
         vec_delete_p(contours_sum);
 
-        mask_count = 0;
-        line_count = 0;
-
         // naming by time [JH]
         char filename_sample_img[200];
         sprintf(filename_sample_img, "sample_img_%d.%d.png", t->tm_min, t->tm_sec);
@@ -329,8 +326,7 @@ int main(int argc, char **argv)
 
         char filename_mask[200];
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
-
-        // save image name depends on time [JH]
+        // // save image name depends on time [JH]
         // imwrite(filename_sample_img,src); 
         imwrite(filename,res);
         imwrite(filename_mask,mask);
@@ -340,6 +336,16 @@ int main(int argc, char **argv)
         // imwrite("mask.png", mask);     
         // imwrite("mask_line.png", mask_line); 
         // imwrite("mask_com.png", mask_combination); 
+
+        // mask initialization [W]
+        mask_count = 0;
+        line_count = 0;
+        mask_line = Mat::zeros(720, 1280, CV_8UC1);
+        mask_combination = Mat::zeros(720, 1280, CV_8UC1);
+
+        
+
+        
         
         ros::spinOnce();        
     }

@@ -288,10 +288,12 @@ void yaw_ctrl()
 		// std::cout << "err_psi_1_after____ : " << err_psi_1 << std::endl;
 		// Compare second waypoint to first waypoint [W]
 		des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI;
+
 		if (des_psi_2 < 0)
 		{
 			des_psi_2 += 360.0;
 		}
+		
 		err_psi_2 = des_psi_2- cur_psi;
 
 		// std::cout << "pos.x : " << pos.x << "\tpos.y : " << pos.y << std::endl;
