@@ -26,7 +26,7 @@ int main(int argc, char **argv)
 {
     // corner flag [JH]
     corner_flag.data = false; // straight line -> false, corner -> true
-    
+    finish_flag.data = false;
     // save image for each name [W]
     time_t timer;
     struct tm* t;
@@ -38,6 +38,7 @@ int main(int argc, char **argv)
     ros::Publisher waypoints_r_x = nh.advertise<std_msgs::Float32MultiArray>("wp_r_x", wp_num);
     ros::Publisher waypoints_r_y = nh.advertise<std_msgs::Float32MultiArray>("wp_r_y", wp_num);
     ros::Publisher corner_decision = nh.advertise<std_msgs::Bool>("corner_decision", 5);
+    ros::Publisher finish_decision = nh.advertise<std_msgs::Bool>("finish_decision", 5);
     ros::Publisher d435_origin_pub = nh.advertise<std_msgs::Float32MultiArray>("d435_origin", wp_num);
     
     // ROS Subscriber [W]
@@ -214,7 +215,9 @@ int main(int argc, char **argv)
         top_y = convert_y(min);
         left_x = convert_x(x_left);
         right_x = convert_x(x_right);
-    
+
+        if ( top_y <= 360) finish_flag.data = true;
+        else finish_flag.data = false;
         // get the source of drawing straight line [JH]
         upper_x = float(-vx/vy*(top_y-converted_y)+converted_x);
         lower_x = float(-vx/vy*(-1*converted_y) + converted_x);
@@ -247,7 +250,7 @@ int main(int argc, char **argv)
         std::cout << "a : "<<mask_count << std::endl;
         std::cout << "b : "<<line_count << std::endl;
 
-        if ((line_count - mask_count) >= 200 & fabs(gradient) <= 1.5) corner_flag.data = true;
+        if ((line_count - mask_count) >= 200 && fabs(gradient) <= 1.5) corner_flag.data = true;
         else if (idx>=8)  corner_flag.data = false;
         
         // if our's objective line is straight [W]
@@ -301,6 +304,7 @@ int main(int argc, char **argv)
 
         // Publish topics [W]   
         corner_decision.publish(corner_flag);
+        finish_decision.publish(finish_flag);
         waypoints_r_x.publish(wp_r_x);
         waypoints_r_y.publish(wp_r_y);
         d435_origin_pub.publish(d435_origin);

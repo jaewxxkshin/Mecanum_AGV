@@ -38,6 +38,7 @@ std_msgs::Float32MultiArray ele_x;
 std_msgs::Float32MultiArray ele_y;
 std_msgs::Float32MultiArray d435_origin;
 std_msgs::Bool corner_flag;
+std_msgs::Bool finish_flag;
 
 // t265_pos & att [W]
 geometry_msgs::Vector3 pos;

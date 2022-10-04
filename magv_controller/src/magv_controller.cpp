@@ -39,6 +39,7 @@ std::vector<float> wp_r_y;
 bool corner_flag = false;
 bool flag = 0;
 bool d_flag = true;
+bool finish_flag = false;
 //---------------------------[W]
 bool straight_mode = 1;
 //bool radius_mode = 0;
@@ -87,6 +88,7 @@ void vec_delete_float(std::vector<float> &vec);
 void cal_rot_wp();
 void yaw_ctrl();
 void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision);
+void finish_decision_Callback(const std_msgs::Bool::ConstPtr& decision);
 // ----------------------------------------------------------------------------
 
 
@@ -111,6 +113,7 @@ int main(int argc, char **argv)
 	ros::Subscriber waypoint_r_x_sub =nh.subscribe("wp_r_x",100,wp_r_x_Callback);
     ros::Subscriber waypoint_r_y_sub =nh.subscribe("wp_r_y",100,wp_r_y_Callback);
 	ros::Subscriber corner_decision_sub=nh.subscribe("/corner_decision",100,corner_decision_Callback);
+	ros::Subscriber finish_decision_sub=nh.subscribe("/finish_decision",100,finish_decision_Callback);
 	ros::Subscriber d435_origin_sub =nh.subscribe("/d435_origin",100,originCallback);
 	
 	ros::Rate loop_rate(100);
@@ -140,7 +143,7 @@ void posCallback(const geometry_msgs::Vector3& msg){
 
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 {
-	if (corner_flag == false)	d_flag = true; // straight line -> d_flag = true
+	if (corner_flag == false && finish_flag==false)	d_flag = true; // straight line -> d_flag = true
 	
 	if (d_flag == true)
 	{
@@ -166,6 +169,8 @@ void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array)
 		d_flag = false; // don't update wp 
 		prev_corner == true;
 	}
+
+	if(finish_flag == true) d_flag= false; // finish flag = true -> don't update wp
 
 	// std::cout << "corner flag : \t" << corner_flag << "\td_flag : \t" << d_flag << std::endl;
 	
@@ -325,7 +330,6 @@ void yaw_ctrl()
 		err_psi_dot = 2 * err_psi;
 
 	}
-
 	// d gain : - d_psi*t265_ang_vel.z;
 
 
@@ -345,7 +349,10 @@ void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision)
 	corner_flag = decision->data;
 }
 
-
+void finish_decision_Callback(const std_msgs::Bool::ConstPtr& decision)
+{
+	finish_flag = decision->data;
+}
 
 
 
