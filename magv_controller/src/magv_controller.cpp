@@ -50,6 +50,7 @@ double cmd_psi = 0;
 double distance = 0.;
 double ver_d = 0.;
 double theta_robot = 0.;
+double theta_line = 0.;
 double freq = 30;//controller loop frequency
 float err_psi = 0;
 float err_psi_1 = 0;
@@ -304,11 +305,12 @@ void yaw_ctrl()
 		// rot.z
 
 		theta_robot = fabs(atan2 (wp_r_y[idx]-pos.y,wp_r_x[idx]-pos.x));
+		if(idx==0) idx=1;
+		theta_line = atan2(wp_r_y[idx]-wp_r_y[idx-1],wp_r_x[idx]-wp_r_x[idx-1])-M_PI/2;
+		theta_robot = fabs(theta_robot - theta_line);
 		
-		theta_robot = theta_robot - t265_att.z;
-
 		if(fabs(theta_robot)>M_PI/2) theta_robot = M_PI - theta_robot; 
-		
+		theta_robot = fabs(theta_robot);
 		distance = sqrt( pow((wp_r_x[idx]-pos.x),2) + pow((wp_r_y[idx]-pos.y),2) );	
 		ver_d = distance * cos(theta_robot);
 
@@ -319,7 +321,7 @@ void yaw_ctrl()
 		
 		dist_ros.data = ver_d;
 
-		k = ver_d * ( max_k / max_dist );
+		k = ver_d * ( max_k / max_dist 4);
 		if(fabs(k)>1) k = k/fabs(k);
 
 		k_ros.data = k;

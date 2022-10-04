@@ -338,12 +338,12 @@ int main(int argc, char **argv)
         // imwrite(filename_sample_img,src); 
         
         
-        // imwrite(filename,res);
-        // imwrite(filename_mask,mask);
+        imwrite(filename,res);
+        imwrite(filename_mask,mask);
 
         // save image [JH]
-        imwrite("res.png", res);     
-        imwrite("mask.png", mask);     
+        // imwrite("res.png", res);     
+        // imwrite("mask.png", mask);     
         // imwrite("mask_line.png", mask_line); 
         // imwrite("mask_com.png", mask_combination); 
         
