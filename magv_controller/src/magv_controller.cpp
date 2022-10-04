@@ -342,3 +342,12 @@ void corner_decision_Callback(const std_msgs::Bool::ConstPtr& decision)
 {
 	corner_flag = decision->data;
 }
+
+
+
+
+
+
+
+
+
