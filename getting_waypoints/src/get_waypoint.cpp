@@ -144,7 +144,7 @@ int main(int argc, char **argv)
         dilate(img_erode, img_dilate, Mat::ones(Size(3, 3), CV_8UC1), Point(-1, -1), 3);
         // std::cout << src.channels() <<std::endl;
         // imwrite("after_erode.png",img_erode);
-        // imwrite("after_dilate.png",img_dilate);
+        // ("after_dilate.png",img_dilate);
         mask = img_dilate;
 
         // find contours [HW]
@@ -332,8 +332,8 @@ int main(int argc, char **argv)
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
         // // save image name depends on time [JH]
         // imwrite(filename_sample_img,src); 
-        imwrite(filename,res);
-        imwrite(filename_mask,mask);
+        // imwrite(filename,res);
+        // imwrite(filename_mask,mask);
 
         // save image [JH]
         // imwrite("res.png", res);     

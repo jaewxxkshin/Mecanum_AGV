@@ -49,6 +49,12 @@ bool straight_mode = 1;
 int p_psi = 5;
 double cmd_psi = 0;
 double distance = 0.;
+double ver_a = 0.;
+double ver_b = 0.;
+double ver_c = 0.;
+double ver_dist = 0.;
+double theta_robot = 0.;
+double theta_line = 0.;
 double freq = 30;//controller loop frequency
 float err_psi = 0;
 float err_psi_1 = 0;
@@ -300,14 +306,42 @@ void yaw_ctrl()
 		}
 		
 		err_psi_2 = des_psi_2- cur_psi;
+		// vir d [JH]=======================================================================
+		// theta_robot = fabs(atan2 (wp_r_y[idx]-pos.y,wp_r_x[idx]-pos.x));
 
-		// std::cout << "pos.x : " << pos.x << "\tpos.y : " << pos.y << std::endl;
-		distance = sqrt( pow((wp_r_x[idx]-pos.x),2) + pow((wp_r_y[idx]-pos.y),2) );	
-		if ( distance > max_dist ) distance = max_dist;
+		// if(idx==0) idx=1;
 		
-		dist_ros.data = distance;
+		// theta_line = atan2(wp_r_y[idx]-wp_r_y[idx-1],wp_r_x[idx]-wp_r_x[idx-1])-M_PI/2;
+		
+		// theta_robot = fabs(theta_robot - theta_line);
+		// // theta_robot = theta_robot - t265_att.z;
 
-		k = distance * ( max_k / max_dist );
+		// if(fabs(theta_robot)>M_PI/2) theta_robot = M_PI - theta_robot; 
+
+		// theta_robot = fabs(theta_robot);
+		// distance = sqrt( pow((wp_r_x[idx]-pos.x),2) + pow((wp_r_y[idx]-pos.y),2) );	
+		// ver_d = distance * cos(theta_robot);
+		
+		//==============================================================================
+
+		//vertical distance[HW]=========================================================================
+		if(idx==0) idx = 1;
+		// ax + by + c = 0     a -> ver_a, b -> ver_b, c -> ver_c
+		ver_a = wp_r_y[idx] - wp_r_y[idx-1];
+		ver_b = wp_r_x[idx-1] - wp_r_x[idx];
+		ver_c = -wp_r_x[idx-1] * (wp_r_y[idx]-wp_r_y[idx-1]) + wp_r_y[idx-1] * (wp_r_x[idx] - wp_r_x[idx-1]);
+		// distance between point and line[HW]
+		ver_dist = fabs(ver_a * pos.x + ver_b * pos.y + ver_c) / sqrt(pow(ver_a,2) + pow(ver_b,2));
+
+		//==========================================================================================
+		// std::cout << "pos.x : " << pos.x << "\tpos.y : " << pos.y << std::endl;
+		// distance = sqrt( pow((wp_r_x[idx]-pos.x),2) + pow((wp_r_y[idx]-pos.y),2) );	
+		// if ( distance > max_dist ) distance = max_dist;
+		// k = distance * ( max_k / max_dist );
+		// if(fabs(k)>1) k = k/fabs(k);
+		if ( ver_dist > max_dist ) ver_dist = max_dist;
+		dist_ros.data = ver_dist;
+		k = ver_dist * (max_k / max_dist);
 		if(fabs(k)>1) k = k/fabs(k);
 
 		k_ros.data = k;
