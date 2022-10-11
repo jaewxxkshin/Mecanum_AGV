@@ -7,17 +7,17 @@
 #define PI 3.141592
 
 int main(int argc, char **argv){
-    ros::init(argc,argv,"setting_d435_frame");
+    ros::init(argc,argv,"setting_flatform_frame");
 
     static tf2_ros::StaticTransformBroadcaster static_broadcaster;
     geometry_msgs::TransformStamped static_transformStamped;
 
     static_transformStamped.header.stamp = ros::Time::now();
     static_transformStamped.header.frame_id="camera_pose_frame";
-    static_transformStamped.child_frame_id="d435_frame";
+    static_transformStamped.child_frame_id="flatform_frame";
     //put distance betweem t265 and d435
-    static_transformStamped.transform.translation.x=0.3026; //before:0.0526
-    static_transformStamped.transform.translation.y=0.00856;
+    static_transformStamped.transform.translation.x=0.75;
+    static_transformStamped.transform.translation.y=0.015;
     static_transformStamped.transform.translation.z=0;
     tf2::Quaternion quat;
     quat.setRPY(0.0, 0.0,  270*PI/180);
