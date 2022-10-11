@@ -133,6 +133,7 @@ include_directories(
 add_executable(setting_t265_world src/setting_t265_world.cpp)
 add_executable(setting_d435_frame src/setting_d435_frame.cpp)
 add_executable(setting_platform src/setting_platform.cpp)
+add_executable(setting_platform_world src/setting_platform_world.cpp)
 add_executable(tf_listener src/tf_listener.cpp)
 
 
@@ -164,6 +165,10 @@ target_link_libraries(setting_d435_frame
 target_link_libraries(setting_platform
   ${catkin_LIBRARIES}
 )
+target_link_libraries(setting_platform_world
+  ${catkin_LIBRARIES}
+)
+
 target_link_libraries(tf_listener
   ${catkin_LIBRARIES}
 )

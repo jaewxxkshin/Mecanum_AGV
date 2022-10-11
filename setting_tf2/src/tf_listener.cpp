@@ -29,8 +29,8 @@ int main(int argc, char** argv){
 
         try{
             // argv[0] & argv[1]'s order trouble [W] 
-            transformStamped = tfBuffer.lookupTransform("d435_world","d435_frame",ros::Time(0));
-            transformStamped2 = tfBuffer2.lookupTransform("camera_odom_frame","platform_frame",ros::Time(0));
+            transformStamped = tfBuffer.lookupTransform("platform_world","d435_frame",ros::Time(0));
+            transformStamped2 = tfBuffer2.lookupTransform("platform_world","platform_frame",ros::Time(0));
         }
         catch(tf2::TransformException &ex){
             ROS_WARN("%s",ex.what());

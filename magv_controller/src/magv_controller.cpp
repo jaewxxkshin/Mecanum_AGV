@@ -79,6 +79,7 @@ int g_flag = 0;
 bool prev_corner = false;
 bool idx_flag = false;
 int16_t idx = 0;
+int16_t idx_2 = 0;
 
 // variable for dp_product
 float gradient =0.0;
@@ -152,7 +153,7 @@ void posCallback(const geometry_msgs::Vector3& msg){
 	pos.x=msg.x;
 	pos.y=msg.y;
 	pos.z=-msg.z;
-	if(flag == 1) yaw_ctrl();
+	// if(flag == 1) yaw_ctrl();
 	// ROS_INFO("Translation - [x: %f  y:%f  z:%f]",pos.x,pos.y,pos.z);
 }
 
@@ -355,11 +356,12 @@ void yaw_ctrl()
 		//==============================================================================
 
 		//vertical distance[HW]=========================================================================
-		if(idx==0) idx = 1;
+		idx_2 = idx;
+		if(idx_2==0) idx_2 = 1;
 		// ax + by + c = 0     a -> ver_a, b -> ver_b, c -> ver_c
-		ver_a = wp_r_y[idx] - wp_r_y[idx-1];
-		ver_b = wp_r_x[idx-1] - wp_r_x[idx];
-		ver_c = -wp_r_x[idx-1] * (wp_r_y[idx]-wp_r_y[idx-1]) + wp_r_y[idx-1] * (wp_r_x[idx] - wp_r_x[idx-1]);
+		ver_a = wp_r_y[idx_2] - wp_r_y[idx_2-1];
+		ver_b = wp_r_x[idx_2-1] - wp_r_x[idx_2];
+		ver_c = -wp_r_x[idx_2-1] * (wp_r_y[idx_2]-wp_r_y[idx_2-1]) + wp_r_y[idx_2-1] * (wp_r_x[idx_2] - wp_r_x[idx_2-1]);
 		// distance between point and line[HW]
 		ver_dist = fabs(ver_a * platform_pos.x + ver_b * platform_pos.y + ver_c) / sqrt(pow(ver_a,2) + pow(ver_b,2));
 
