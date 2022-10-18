@@ -325,7 +325,7 @@ void yaw_ctrl()
 		
 		// JH idea 
 		des_psi_1 = atan2((wp_r_y[idx] - platform_pos.y), (wp_r_x[idx] - platform_pos.x)) * 180 / M_PI;
-		// if(des_psi_1 <-90) des_psi_1 +=360;
+		if(des_psi_1 <-90) des_psi_1 +=360;
 		
 		err_psi_1 = des_psi_1 - cur_psi;
 		
