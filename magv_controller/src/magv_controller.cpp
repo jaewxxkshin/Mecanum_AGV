@@ -230,56 +230,61 @@ void yaw_ctrl()
 	
 	// update index by using dot product =========================================
 	// //vector 1 : robot - wp[idx]
-	// vec_delete_float(vector1);
-	// vector1.push_back(wp_r_x[idx]-pos.x);
-	// vector1.push_back(wp_r_y[idx]-pos.y);
+	vec_delete_float(vector1);
+	vector1.push_back(wp_r_x[idx]-pos.x);
+	vector1.push_back(wp_r_y[idx]-pos.y);
 
-	// //vector 2 : wp[idx] - wp[idx+1]
-	// vec_delete_float(vector2);
-	// // gradient = (wp_r_y[idx+1]-wp_r_y[idx])/(wp_r_x[idx+1]-wp_r_x[idx]);
-	// // vector2.push_back(1/(sqrt(1+pow(gradient,2))));
-	// // vector2.push_back(gradient/(sqrt(1+pow(gradient,2))));
-	// vector2.push_back(wp_r_x[idx+1]-wp_r_x[idx]);
-	// vector2.push_back(wp_r_y[idx+1]-wp_r_y[idx]);
-
-	// // Dot_ Product
-	// dp_val = (vector1[0] * vector2[0]) + (vector1[1] * vector2[1]);
+	//vector 2 : wp[idx] - wp[idx+1]
+	vec_delete_float(vector2);
+	if(idx==9){
+		vector2.push_back(wp_r_x[idx]-wp_r_x[idx-1]);
+		vector2.push_back(wp_r_y[idx]-wp_r_y[idx-1]);
+	}
+	else{
+		vector2.push_back(wp_r_x[idx+1]-wp_r_x[idx]);
+		vector2.push_back(wp_r_y[idx+1]-wp_r_y[idx]);
+	}
+	// gradient = (wp_r_y[idx+1]-wp_r_y[idx])/(wp_r_x[idx+1]-wp_r_x[idx]);
+	// vector2.push_back(1/(sqrt(1+pow(gradient,2))));
+	// vector2.push_back(gradient/(sqrt(1+pow(gradient,2))));
 	
-	// if( dp_val<0)idx++;
+	// Dot_ Product
+	dp_val = (vector1[0] * vector2[0]) + (vector1[1] * vector2[1]);
+	
+	if( dp_val<0)idx++;
 	//==============================================
-
 	// std::cout << "index : " << idx <<std::endl;
 	// std::cout << "vector1_x : " << vector1[0] << "\tvector1_y : " << vector1[1] << "\tvector2_x : " << vector2[0] << "\tvector2_y : " << vector2[1] << "\tDP_theta : "<< dp_val << std::endl;
 	// std::cout << "dp_val: " << dp_val <<std::endl; 
 	//============================================================================
 
-	if ( g_flag%2 == 0 )
-	{
- 		gradient = -(wp_r_x[idx+1]-wp_r_x[idx])/(wp_r_y[idx+1]-wp_r_y[idx]);
-		// f1(x)
-		// double tmp_x = pos.x;
-		// double tmp_y = pos.y;
-		temp_y1 = gradient *(pos.x - wp_r_x[idx])+ wp_r_y[idx];
-		// f2(x)
-		// temp_y2 = gradient *(pos.x - wp_r_x[idx+1])+ wp_r_y[idx+1];
-		if (wp_r_y[1] - wp_r_y[0]>0 && pos.y > temp_y1 ) idx++; // y++
-		if (wp_r_y[1] - wp_r_y[0]<0 && pos.y < temp_y1 ) idx++; // y--
-	}
+	// if ( g_flag%2 == 0 )
+	// {
+ 	// 	gradient = -(wp_r_x[idx+1]-wp_r_x[idx])/(wp_r_y[idx+1]-wp_r_y[idx]);
+	// 	// f1(x)
+	// 	// double tmp_x = pos.x;
+	// 	// double tmp_y = pos.y;
+	// 	temp_y1 = gradient *(pos.x - wp_r_x[idx])+ wp_r_y[idx];
+	// 	// f2(x)
+	// 	// temp_y2 = gradient *(pos.x - wp_r_x[idx+1])+ wp_r_y[idx+1];
+	// 	if (wp_r_y[1] - wp_r_y[0]>0 && pos.y > temp_y1 ) idx++; // y++
+	// 	if (wp_r_y[1] - wp_r_y[0]<0 && pos.y < temp_y1 ) idx++; // y--
+	// }
 
-	if ( g_flag%2 == 1 )
-	{
-		// x
-		// gradient = -(wp_r_x[idx+1]-wp_r_x[idx])/(wp_r_y[idx+1]-wp_r_y[idx]);
-		gradient = -(wp_r_y[idx+1]-wp_r_y[idx])/(wp_r_x[idx+1]-wp_r_x[idx]);		
-		// f1(x)
-		// double tmp_x = pos.x;
-		// double tmp_y = pos.y;
-		temp_x1 = gradient *(pos.y - wp_r_y[idx])+ wp_r_x[idx];
-		// f2(x)
-		temp_x2 = gradient *(pos.y - wp_r_y[idx+1])+ wp_r_x[idx+1];
-		if (wp_r_x[1] - wp_r_x[0]>0 && pos.x > temp_x1 ) idx++; 
-		if (wp_r_x[1] - wp_r_x[0]<0 && pos.x < temp_x1 ) idx++;
-	}
+	// if ( g_flag%2 == 1 )
+	// {
+	// 	// x
+	// 	// gradient = -(wp_r_x[idx+1]-wp_r_x[idx])/(wp_r_y[idx+1]-wp_r_y[idx]);
+	// 	gradient = -(wp_r_y[idx+1]-wp_r_y[idx])/(wp_r_x[idx+1]-wp_r_x[idx]);		
+	// 	// f1(x)
+	// 	// double tmp_x = pos.x;
+	// 	// double tmp_y = pos.y;
+	// 	temp_x1 = gradient *(pos.y - wp_r_y[idx])+ wp_r_x[idx];
+	// 	// f2(x)
+	// 	temp_x2 = gradient *(pos.y - wp_r_y[idx+1])+ wp_r_x[idx+1];
+	// 	if (wp_r_x[1] - wp_r_x[0]>0 && pos.x > temp_x1 ) idx++; 
+	// 	if (wp_r_x[1] - wp_r_x[0]<0 && pos.x < temp_x1 ) idx++;
+	// }
 
 	cur_psi = t265_att.z * 180 / M_PI + 90;
 
@@ -294,18 +299,13 @@ void yaw_ctrl()
 		
 		// JH idea 
 		des_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x)) * 180 / M_PI;
+		if(des_psi_1 <= -cur_psi) des_psi_1 += 360 ;
 		err_psi_1 = des_psi_1 - cur_psi;
-		if(des_psi_1 <= -90) des_psi_1 += 360;
 		
 		// std::cout << "err_psi_1_after____ : " << err_psi_1 << std::endl;
 		// Compare second waypoint to first waypoint [W]
-		des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI;
-
-		if (des_psi_2 < 0)
-		{
-			des_psi_2 += 360.0;
-		}
-		
+		des_psi_2 = atan2((wp_r_y[idx + 1] - wp_r_y[idx]),(wp_r_x[idx + 1] - wp_r_x[idx])) * 180 / M_PI; 
+		if (des_psi_2 < cur_psi-180)	des_psi_2 += 360.0;
 		err_psi_2 = des_psi_2- cur_psi;
 		// vir d [JH]=======================================================================
 		// theta_robot = fabs(atan2 (wp_r_y[idx]-pos.y,wp_r_x[idx]-pos.x));

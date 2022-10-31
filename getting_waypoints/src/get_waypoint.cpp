@@ -150,206 +150,205 @@ int main(int argc, char **argv)
         // find contours [HW]
         // line(mask, Point(0,300),Point(300,720),Scalar(0), 1); 
         findContours(mask, contours, hierachy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE); 
-        drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
-        // imwrite("contour.png", image);  
-
-        // get contour's y_val( every y ), x_val (every x ) [JH]
-        for ( int i = 0; i < contours.size(); i++)
-        {
-            for ( int j = 0; j < contours[i].size(); j++)
-            {
-                y_val.push_back(contours[i][j].y);
-            }
-        }
-        for ( int i = 0; i < contours.size(); i++)
-        {
-            for ( int j = 0; j < contours[i].size(); j++)
-            {
-                x_val.push_back(contours[i][j].x);
-            }
-        }
-    
-        // contour's x,y min/max value [JH]
-        float min = *min_element(y_val.begin(),y_val.end());
-        float max = *max_element(y_val.begin(),y_val.end());
-        float x_left = *min_element(x_val.begin(),x_val.end());
-        float x_right = *max_element(x_val.begin(),x_val.end());
         
-        // contour's bottom x value [JH]
-        for ( int i = 0; i < contours.size(); i++)
+        // trying to solve <node die problem>
+        if(contours.size()==0) ROS_INFO("=================NO CONTOUR=================");
+        if (contours.size()>0)
         {
-            for ( int j = 0; j < contours[i].size(); j++)
+            drawContours(image, contours, -1, Scalar(255, 0, 0), 5);
+            // imwrite("contour.png", image);  
+            std::cout << "countours : " << contours.size() <<std::endl;
+
+            // get contour's y_val( every y ), x_val (every x ) [JH]
+            for ( int i = 0; i < contours.size(); i++)
             {
-                if(contours[i][j].y == max)
+                for ( int j = 0; j < contours[i].size(); j++)
                 {
-                    bottom_x.push_back(contours[i][j].x);
+                    y_val.push_back(contours[i][j].y);
                 }
             }
-        }
-
-        // corner [JH]
-        // get avg of contour's bottom x value [JH]
-        float sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
-        float mean_bottom_x = sum_bottom_x/bottom_x.size();
-        
-        // if system detect more than 2 contours -> connect every contours [JH]
-        for (int i=0; i < contours.size(); i++)
-        {
-            for (int j=0; j < contours[i].size() ; j++)
+            for ( int i = 0; i < contours.size(); i++)
             {
-                contours_sum.push_back(contours[i][j]);
+                for ( int j = 0; j < contours[i].size(); j++)
+                {
+                    x_val.push_back(contours[i][j].x);
+                }
             }
-        }
-
-        // fitLine() function to detect representive line [W]
-        fitLine(contours_sum, detected_line, CV_DIST_L2, 0, 0.01, 0.01);
-        vx = detected_line[0]; // fitline vector x
-        vy = detected_line[1]; // fitline vector y
-        gradient = vy/vx; //gradient of fitline
-        x = float(detected_line[2]); // point of fitline
-        y = float(detected_line[3]); // point of fitline
-    
-        // get (x,y) of detected line in converted coordinate [JH]
-        converted_x = convert_x(x);
-        converted_y = convert_y(y);
-        top_y = convert_y(min);
-        left_x = convert_x(x_left);
-        right_x = convert_x(x_right);
-
-        if ( top_y <= 360) finish_flag.data = true;
-        else finish_flag.data = false;
-        // get the source of drawing straight line [JH]
-        upper_x = float(-vx/vy*(top_y-converted_y)+converted_x);
-        lower_x = float(-vx/vy*(-1*converted_y) + converted_x);
-
-        // visualization representive line [W]
-        line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
-        line(mask_line, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(255), 3);
-
-        // Corner detection Algorithm v_1 [JH]
-        // if ( abs(gradient) <= 1.5 ) corner_flag.data = true;
-        // else if ( abs(gradient) > 1.5 ) corner_flag.data = false;
-        // std::cout << "gradient :  " << gradient << "    corner flag : "<< corner_flag.data << std::endl;  
-
-        // Corner detection Algorithm v_2 [W]
-        bitwise_or(mask, mask_line, mask_combination);
-
-        for (int y = 0; y < mask.rows; y++)
-		    for (int x = 0; x < mask.cols; x++)
-		    {
-			    if(mask.at<int>(y,x)==255)
-                mask_count ++;
-			}
         
-        for (int y = 0; y < mask.rows; y++)
-		    for (int x = 0; x < mask.cols; x++)
-		    {
-			    if(mask_combination.at<int>(y,x)==255)
-                line_count ++;
-			}
-        std::cout << "a : "<<mask_count << std::endl;
-        std::cout << "b : "<<line_count << std::endl;
+            // contour's x,y min/max value [JH]
+            minn = *min_element(y_val.begin(),y_val.end());
+            maxx = *max_element(y_val.begin(),y_val.end());
+            x_left = *min_element(x_val.begin(),x_val.end());
+            x_right = *max_element(x_val.begin(),x_val.end());
 
-        if ((line_count - mask_count) >= 200 && fabs(gradient) <= 1.5) corner_flag.data = true;
-        else if (idx>=8)  corner_flag.data = false;
-        
-        // if our's objective line is straight [W]
-        if (corner_flag.data == false) // straight 
-        {
-            for(int i=0; i<wp_num; i++)
+            // contour's bottom x value [JH]
+            for ( int i = 0; i < contours.size(); i++)
             {
-                wp_y.push_back(top_y/wp_num*(i+1));
-                wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
-                wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i]*dist_pix  - sin_ic * wp_y[i]*dist_pix; //* distance_of_pixel
-                wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i]*dist_pix  + cos_ic * wp_y[i]*dist_pix;
+                for ( int j = 0; j < contours[i].size(); j++)
+                {
+                    if(contours[i][j].y == maxx)
+                    {
+                        bottom_x.push_back(contours[i][j].x);
+                    }
+                }
             }
-        }
         
-        // if our's objective lines is radius [W]
-        else if(corner_flag.data == true) // rotation
-        {   
-            for(int i=0; i<wp_num; i++) // circle waypoint y
-            {
-                float theta = i *wp_num *(PI / 180);
+            // corner [JH]
+            // get avg of contour's bottom x value [JH]
+            sum_bottom_x = accumulate(bottom_x.begin(),bottom_x.end(),0);
+            mean_bottom_x = sum_bottom_x/bottom_x.size();
 
-                wp_y.push_back(top_y * sin(theta));
+            // if system detect more than 2 contours -> connect every contours [JH]
+            for (int i=0; i < contours.size(); i++)
+            {
+                for (int j=0; j < contours[i].size() ; j++)
+                {
+                    contours_sum.push_back(contours[i][j]);
+                }
             }
-            if (vy/vx > 0) // turn left - waypoint x
+            
+            // fitLine() function to detect representive line [W]
+            fitLine(contours_sum, detected_line, CV_DIST_L2, 0, 0.01, 0.01);
+            vx = detected_line[0]; // fitline vector x
+            vy = detected_line[1]; // fitline vector y
+            gradient = vy/vx; //gradient of fitline
+            x = float(detected_line[2]); // point of fitline
+            y = float(detected_line[3]); // point of fitline
+        
+            // get (x,y) of detected line in converted coordinate [JH]
+            converted_x = convert_x(x);
+            converted_y = convert_y(y);
+            top_y = convert_y(minn);
+            left_x = convert_x(x_left);
+            right_x = convert_x(x_right);
+        
+            if ( top_y <= 360) finish_flag.data = true;
+            else finish_flag.data = false;
+            // get the source of drawing straight line [JH]
+            upper_x = float(-vx/vy*(top_y-converted_y)+converted_x);
+            lower_x = float(-vx/vy*(-1*converted_y) + converted_x);
+
+            // visualization representive line [W]
+            line(res, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(0,0,255), 3);
+            line(mask_line, Point(inv_convert_x(upper_x),inv_convert_y(top_y)), Point(inv_convert_x(lower_x),inv_convert_y(0)),Scalar(255), 3);
+
+            // Corner detection Algorithm v_1 [JH]
+            // if ( abs(gradient) <= 1.5 ) corner_flag.data = true;
+            // else if ( abs(gradient) > 1.5 ) corner_flag.data = false;
+            // std::cout << "gradient :  " << gradient << "    corner flag : "<< corner_flag.data << std::endl;  
+
+            // Corner detection Algorithm v_2 [W]
+            bitwise_or(mask, mask_line, mask_combination);
+
+            for (int y = 0; y < mask.rows; y++)
+		        for (int x = 0; x < mask.cols; x++)
+		        {
+		    	    if(mask.at<int>(y,x)==255)
+                    mask_count ++;
+		    	}
+
+            for (int y = 0; y < mask.rows; y++)
+		        for (int x = 0; x < mask.cols; x++)
+		        {
+		    	    if(mask_combination.at<int>(y,x)==255)
+                    line_count ++;
+		    	}
+            std::cout << "a : "<<mask_count << std::endl;
+            std::cout << "b : "<<line_count << std::endl;
+
+            if ((line_count - mask_count) >= 200 && fabs(gradient) <= 1.5) corner_flag.data = true;
+            else if (idx>=8)  corner_flag.data = false;
+
+            // if our's objective line is straight [W]
+            if (corner_flag.data == false) // straight 
             {
                 for(int i=0; i<wp_num; i++)
                 {
-                    float theta = i * wp_num * (PI / 180); //9/10 
-                    wp_x.push_back(convert_x(mean_bottom_x - (top_y - top_y*cos(theta))));
+                    wp_y.push_back(top_y/wp_num*(i+1));
+                    wp_x.push_back((-vx/vy*(wp_y[i]-converted_y)+converted_x));
+                    wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i]*dist_pix  - sin_ic * wp_y[i]*dist_pix; //* distance_of_pixel
+                    wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i]*dist_pix  + cos_ic * wp_y[i]*dist_pix;
                 }
-            } 
-            else if (vy/vx < 0) // turn right - waypoint x
-            {
+            }
+
+            // if our's objective lines is radius [W]
+            else if(corner_flag.data == true) // rotation
+            {   
+                for(int i=0; i<wp_num; i++) // circle waypoint y
+                {
+                    float theta = i *wp_num *(PI / 180);
+
+                    wp_y.push_back(top_y * sin(theta));
+                }
+                if (vy/vx > 0) // turn left - waypoint x
+                {
+                    for(int i=0; i<wp_num; i++)
+                    {
+                        float theta = i * wp_num * (PI / 180); //9/10 
+                        wp_x.push_back(convert_x(mean_bottom_x - (top_y - top_y*cos(theta))));
+                    }
+                } 
+                else if (vy/vx < 0) // turn right - waypoint x
+                {
+                    for(int i=0; i<wp_num; i++)
+                    {
+                        float theta = i*wp_num * (PI / 180);
+                        wp_x.push_back(convert_x(mean_bottom_x + (top_y - top_y*cos(theta))));
+                    }
+                }
                 for(int i=0; i<wp_num; i++)
                 {
-                    float theta = i*wp_num * (PI / 180);
-                    wp_x.push_back(convert_x(mean_bottom_x + (top_y - top_y*cos(theta))));
+                    wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i]*dist_pix  - sin_ic * wp_y[i]*dist_pix;// * distance_of_pixel;
+                    wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i]*dist_pix  + cos_ic * wp_y[i]*dist_pix;// * distance_of_pixel;
                 }
             }
+            // visualization waypoint
             for(int i=0; i<wp_num; i++)
             {
-                wp_r_x.data[i] =  x_ic + cos_ic * wp_x[i]*dist_pix  - sin_ic * wp_y[i]*dist_pix;// * distance_of_pixel;
-                wp_r_y.data[i] =  y_ic + sin_ic * wp_x[i]*dist_pix  + cos_ic * wp_y[i]*dist_pix;// * distance_of_pixel;
+                circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
             }
+
+            // Publish topics [W]   
+            corner_decision.publish(corner_flag);
+            finish_decision.publish(finish_flag);
+            waypoints_r_x.publish(wp_r_x);
+            waypoints_r_y.publish(wp_r_y);
+            d435_origin_pub.publish(d435_origin);
+
+            pub_time=std::chrono::high_resolution_clock::now();
+
+            std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
+
+            // vector initialization [W]
+            vec_delete(x_val);
+            vec_delete(y_val);
+            vec_delete_float(wp_x);
+            vec_delete_float(wp_y);
+            vec_delete(bottom_x);
+            vec_delete_p(contours_sum);
+
+            // mask initialization [W]
+            mask_count = 0;
+            line_count = 0;
+            mask_line = Mat::zeros(720, 1280, CV_8UC1);
+            mask_combination = Mat::zeros(720, 1280, CV_8UC1);
         }
-        // visualization waypoint
-        for(int i=0; i<wp_num; i++)
-        {
-            circle(res, Point(inv_convert_x(wp_x[i]), inv_convert_y(wp_y[i])), 5, Scalar(255,255,255), 3);
-        }
-
-        // Publish topics [W]   
-        corner_decision.publish(corner_flag);
-        finish_decision.publish(finish_flag);
-        waypoints_r_x.publish(wp_r_x);
-        waypoints_r_y.publish(wp_r_y);
-        d435_origin_pub.publish(d435_origin);
-
-        pub_time=std::chrono::high_resolution_clock::now();
-        
-        std:: cout << "k_means: " << chrono::duration_cast<chrono::milliseconds>(k_time - start).count() <<"ms"<< std::endl;
-        
-        // vector initialization [W]
-        vec_delete(x_val);
-        vec_delete(y_val);
-        vec_delete_float(wp_x);
-        vec_delete_float(wp_y);
-        vec_delete(bottom_x);
-        vec_delete_p(contours_sum);
-
         // naming by time [JH]
         char filename_sample_img[200];
         sprintf(filename_sample_img, "sample_img_%d.%d.png", t->tm_min, t->tm_sec);
-
         char filename[200];
         sprintf(filename, "res_%d.%d.png", t->tm_min, t->tm_sec);
-
         char filename_mask[200];
         sprintf(filename_mask, "mask_%d.%d.png", t->tm_min, t->tm_sec);
         // // save image name depends on time [JH]
         // imwrite(filename_sample_img,src); 
         // imwrite(filename,res);
         // imwrite(filename_mask,mask);
-
         // save image [JH]
         // imwrite("res.png", res);     
         // imwrite("mask.png", mask);     
         // imwrite("mask_line.png", mask_line); 
         // imwrite("mask_com.png", mask_combination); 
-
-        // mask initialization [W]
-        mask_count = 0;
-        line_count = 0;
-        mask_line = Mat::zeros(720, 1280, CV_8UC1);
-        mask_combination = Mat::zeros(720, 1280, CV_8UC1);
-
-        
-
-        
         
         ros::spinOnce();        
     }

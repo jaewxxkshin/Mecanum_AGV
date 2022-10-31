@@ -60,6 +60,14 @@ geometry_msgs::Vector3 t265_att;
 float dist_pix = 0.00132;
 //=====================
 
+// trying to solve <node die problem>
+float minn =.0; 
+float maxx =.0;
+float x_left =.0; 
+float x_right =.0;
+float sum_bottom_x =.0;
+float mean_bottom_x =.0;
+
 // variations for corner dection algorithm [W]
 int mask_count = 0;
 int line_count = 0;
