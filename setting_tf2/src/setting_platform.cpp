@@ -7,20 +7,20 @@
 #define PI 3.141592
 
 int main(int argc, char **argv){
-    ros::init(argc,argv,"setting_d435_world");
+    ros::init(argc,argv,"setting_platform");
 
     static tf2_ros::StaticTransformBroadcaster static_broadcaster;
     geometry_msgs::TransformStamped static_transformStamped;
 
     static_transformStamped.header.stamp = ros::Time::now();
-    static_transformStamped.header.frame_id="camera_odom_frame";
-    static_transformStamped.child_frame_id="d435_world";
-    static_transformStamped.transform.translation.x=0.3026; 
-    static_transformStamped.transform.translation.y=0.00856;
+    static_transformStamped.header.frame_id="camera_pose_frame";
+    static_transformStamped.child_frame_id="platform_frame";
+    
+    static_transformStamped.transform.translation.x=-0.75;
+    static_transformStamped.transform.translation.y=0.015;
     static_transformStamped.transform.translation.z=0;
     tf2::Quaternion quat;
-    // rearrange origin of coordimate
-    quat.setRPY(0.0, 0.0, 270*PI/180);
+    quat.setRPY(0.0, 0.0,  270*PI/180);
     static_transformStamped.transform.rotation.x=quat.x();
     static_transformStamped.transform.rotation.y=quat.y();
     static_transformStamped.transform.rotation.z=quat.z();

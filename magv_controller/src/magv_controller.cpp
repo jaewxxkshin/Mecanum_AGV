@@ -30,8 +30,11 @@ std_msgs::Float32 k_ros;
 
 geometry_msgs::Vector3 pos;
 geometry_msgs::Quaternion rot;
+geometry_msgs::Vector3 platform_pos;
+geometry_msgs::Quaternion platform_rot;
 geometry_msgs::Vector3 t265_ang_vel;
 geometry_msgs::Vector3 t265_att;
+geometry_msgs::Vector3 platform_att;
 
 std::vector<float> wp_r_x;
 std::vector<float> wp_r_y;
@@ -76,6 +79,7 @@ int g_flag = 0;
 bool prev_corner = false;
 bool idx_flag = false;
 int16_t idx = 0;
+int16_t idx_2 = 0;
 
 // variable for dp_product
 float gradient =0.0;
@@ -87,6 +91,10 @@ std::vector<float> vector2;
 // ----------------------------------------------------------------------------
 void rotCallback(const geometry_msgs::Quaternion& msg);
 void posCallback(const geometry_msgs::Vector3& msg);
+
+void platform_rotCallback(const geometry_msgs::Quaternion& msg);
+void platform_posCallback(const geometry_msgs::Vector3& msg);
+
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void originCallback(const std_msgs::Float32MultiArray::ConstPtr& array);
@@ -116,6 +124,9 @@ int main(int argc, char **argv)
     
 	ros::Subscriber d435_rot=nh.subscribe("/d435_rot",100,rotCallback);
 	ros::Subscriber d435_pos=nh.subscribe("/d435_pos",100,posCallback);
+	ros::Subscriber platform_rot=nh.subscribe("/platform_rot",100,platform_rotCallback);
+	ros::Subscriber platform_pos=nh.subscribe("/platform_pos",100,platform_posCallback);
+
 	ros::Subscriber waypoint_r_x_sub =nh.subscribe("wp_r_x",100,wp_r_x_Callback);
     ros::Subscriber waypoint_r_y_sub =nh.subscribe("wp_r_y",100,wp_r_y_Callback);
 	ros::Subscriber corner_decision_sub=nh.subscribe("/corner_decision",100,corner_decision_Callback);
@@ -142,6 +153,14 @@ void posCallback(const geometry_msgs::Vector3& msg){
 	pos.x=msg.x;
 	pos.y=msg.y;
 	pos.z=-msg.z;
+	// if(flag == 1) yaw_ctrl();
+	// ROS_INFO("Translation - [x: %f  y:%f  z:%f]",pos.x,pos.y,pos.z);
+}
+
+void platform_posCallback(const geometry_msgs::Vector3& msg){
+	platform_pos.x=msg.x;
+	platform_pos.y=msg.y;
+	platform_pos.z=-msg.z;
 	if(flag == 1) yaw_ctrl();
 	// ROS_INFO("Translation - [x: %f  y:%f  z:%f]",pos.x,pos.y,pos.z);
 }
@@ -219,6 +238,18 @@ void rotCallback(const geometry_msgs::Quaternion& msg)
 	tf::Matrix3x3(quat).getRPY(t265_att.x,t265_att.y,t265_att.z);	
 }
 
+void platform_rotCallback(const geometry_msgs::Quaternion& msg)
+{
+	platform_rot.x=msg.x;
+	platform_rot.y=msg.y;
+	platform_rot.z=msg.z;
+	platform_rot.w=msg.w;
+
+	tf::Quaternion platform_quat;
+	tf::quaternionMsgToTF(platform_rot,platform_quat);
+	tf::Matrix3x3(platform_quat).getRPY(platform_att.x,platform_att.y,platform_att.z);	
+}
+
 void vec_delete_float(std::vector<float> &vec)
 {
     vec.clear();
@@ -231,8 +262,8 @@ void yaw_ctrl()
 	// update index by using dot product =========================================
 	// //vector 1 : robot - wp[idx]
 	vec_delete_float(vector1);
-	vector1.push_back(wp_r_x[idx]-pos.x);
-	vector1.push_back(wp_r_y[idx]-pos.y);
+	vector1.push_back(wp_r_x[idx]-platform_pos.x);
+	vector1.push_back(wp_r_y[idx]-platform_pos.y);
 
 	//vector 2 : wp[idx] - wp[idx+1]
 	vec_delete_float(vector2);
@@ -253,6 +284,7 @@ void yaw_ctrl()
 	
 	if( dp_val<0)idx++;
 	//==============================================
+
 	// std::cout << "index : " << idx <<std::endl;
 	// std::cout << "vector1_x : " << vector1[0] << "\tvector1_y : " << vector1[1] << "\tvector2_x : " << vector2[0] << "\tvector2_y : " << vector2[1] << "\tDP_theta : "<< dp_val << std::endl;
 	// std::cout << "dp_val: " << dp_val <<std::endl; 
@@ -264,11 +296,11 @@ void yaw_ctrl()
 	// 	// f1(x)
 	// 	// double tmp_x = pos.x;
 	// 	// double tmp_y = pos.y;
-	// 	temp_y1 = gradient *(pos.x - wp_r_x[idx])+ wp_r_y[idx];
+	// 	temp_y1 = gradient *(platform_pos.x - wp_r_x[idx])+ wp_r_y[idx];
 	// 	// f2(x)
 	// 	// temp_y2 = gradient *(pos.x - wp_r_x[idx+1])+ wp_r_y[idx+1];
-	// 	if (wp_r_y[1] - wp_r_y[0]>0 && pos.y > temp_y1 ) idx++; // y++
-	// 	if (wp_r_y[1] - wp_r_y[0]<0 && pos.y < temp_y1 ) idx++; // y--
+	// 	if (wp_r_y[1] - wp_r_y[0]>0 && platform_pos.y > temp_y1 ) idx++; // y++
+	// 	if (wp_r_y[1] - wp_r_y[0]<0 && platform_pos.y < temp_y1 ) idx++; // y--
 	// }
 
 	// if ( g_flag%2 == 1 )
@@ -279,14 +311,14 @@ void yaw_ctrl()
 	// 	// f1(x)
 	// 	// double tmp_x = pos.x;
 	// 	// double tmp_y = pos.y;
-	// 	temp_x1 = gradient *(pos.y - wp_r_y[idx])+ wp_r_x[idx];
+	// 	temp_x1 = gradient *(platform_pos.y - wp_r_y[idx])+ wp_r_x[idx];
 	// 	// f2(x)
-	// 	temp_x2 = gradient *(pos.y - wp_r_y[idx+1])+ wp_r_x[idx+1];
-	// 	if (wp_r_x[1] - wp_r_x[0]>0 && pos.x > temp_x1 ) idx++; 
-	// 	if (wp_r_x[1] - wp_r_x[0]<0 && pos.x < temp_x1 ) idx++;
+	// 	temp_x2 = gradient *(platform_pos.y - wp_r_y[idx+1])+ wp_r_x[idx+1];
+	// 	if (wp_r_x[1] - wp_r_x[0]>0 && platform_pos.x > temp_x1 ) idx++; 
+	// 	if (wp_r_x[1] - wp_r_x[0]<0 && platform_pos.x < temp_x1 ) idx++;
 	// }
 
-	cur_psi = t265_att.z * 180 / M_PI + 90;
+	cur_psi = platform_att.z * 180 / M_PI + 90;
 
 	if ( idx < wp_num-1 )
 	{
@@ -298,8 +330,8 @@ void yaw_ctrl()
 		// std::cout << "err_psi_1_before : " << err_psi_1 << std::endl;
 		
 		// JH idea 
-		des_psi_1 = atan2((wp_r_y[idx] - pos.y), (wp_r_x[idx] - pos.x)) * 180 / M_PI;
-		if(des_psi_1 <= -cur_psi) des_psi_1 += 360 ;
+		des_psi_1 = atan2((wp_r_y[idx] -platform_pos.y), (wp_r_x[idx] -platform_pos.x)) * 180 / M_PI;
+		if(des_psi_1 <= -cur_psi) des_psi_1 += 360;
 		err_psi_1 = des_psi_1 - cur_psi;
 		
 		// std::cout << "err_psi_1_after____ : " << err_psi_1 << std::endl;
@@ -326,13 +358,14 @@ void yaw_ctrl()
 		//==============================================================================
 
 		//vertical distance[HW]=========================================================================
-		if(idx==0) idx = 1;
+		idx_2 = idx;
+		if(idx_2==0) idx_2 = 1;
 		// ax + by + c = 0     a -> ver_a, b -> ver_b, c -> ver_c
-		ver_a = wp_r_y[idx] - wp_r_y[idx-1];
-		ver_b = wp_r_x[idx-1] - wp_r_x[idx];
-		ver_c = -wp_r_x[idx-1] * (wp_r_y[idx]-wp_r_y[idx-1]) + wp_r_y[idx-1] * (wp_r_x[idx] - wp_r_x[idx-1]);
+		ver_a = wp_r_y[idx_2] - wp_r_y[idx_2-1];
+		ver_b = wp_r_x[idx_2-1] - wp_r_x[idx_2];
+		ver_c = -wp_r_x[idx_2-1] * (wp_r_y[idx_2]-wp_r_y[idx_2-1]) + wp_r_y[idx_2-1] * (wp_r_x[idx_2] - wp_r_x[idx_2-1]);
 		// distance between point and line[HW]
-		ver_dist = fabs(ver_a * pos.x + ver_b * pos.y + ver_c) / sqrt(pow(ver_a,2) + pow(ver_b,2));
+		ver_dist = fabs(ver_a * platform_pos.x + ver_b * platform_pos.y + ver_c) / sqrt(pow(ver_a,2) + pow(ver_b,2));
 
 		//==========================================================================================
 		// std::cout << "pos.x : " << pos.x << "\tpos.y : " << pos.y << std::endl;
