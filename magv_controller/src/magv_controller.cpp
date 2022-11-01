@@ -46,7 +46,8 @@ bool straight_mode = 1;
 //---------------------------
 
 // control variable
-int p_psi = 5;
+double p_psi = 5.;
+// double d_psi = 0.;
 double cmd_psi = 0;
 double distance = 0.;
 double ver_a = 0.;
@@ -66,6 +67,7 @@ float prev_psi = 0;
 float cur_psi = 0;
 float k = 0;
 float x_ic, y_ic = 0;
+// Eigen::Vector3d cam_att;
 
 // jh 
 double temp_y1 = 0.0;
@@ -76,6 +78,7 @@ int g_flag = 0;
 bool prev_corner = false;
 bool idx_flag = false;
 int16_t idx = 0;
+int16_t idx_2 = 0;
 
 // variable for dp_product
 float gradient =0.0;
@@ -87,6 +90,7 @@ std::vector<float> vector2;
 // ----------------------------------------------------------------------------
 void rotCallback(const geometry_msgs::Quaternion& msg);
 void posCallback(const geometry_msgs::Vector3& msg);
+// void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void originCallback(const std_msgs::Float32MultiArray::ConstPtr& array);
@@ -121,6 +125,7 @@ int main(int argc, char **argv)
 	ros::Subscriber corner_decision_sub=nh.subscribe("/corner_decision",100,corner_decision_Callback);
 	ros::Subscriber finish_decision_sub=nh.subscribe("/finish_decision",100,finish_decision_Callback);
 	ros::Subscriber d435_origin_sub =nh.subscribe("/d435_origin",100,originCallback);
+	// ros::Subscriber t265_odom=nh.subscribe("/camera/odom/sample",100,t265OdomCallback,ros::TransportHints().tcpNoDelay());
 	
 	ros::Rate loop_rate(100);
 	
@@ -218,6 +223,16 @@ void rotCallback(const geometry_msgs::Quaternion& msg)
 	tf::quaternionMsgToTF(rot,quat);
 	tf::Matrix3x3(quat).getRPY(t265_att.x,t265_att.y,t265_att.z);	
 }
+
+// void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg){
+// 	// t265_lin_vel=msg->twist.twist.linear;
+// 	t265_ang_vel=msg->twist.twist.angular;
+// 	// t265_quat=msg->pose.pose.orientation;
+// 	// tf::Quaternion quat;
+// 	// tf::quaternionMsgToTF(rot,quat);
+// 	// tf::Matrix3x3(quat).getRPY(cam_att(0),cam_att(1),cam_att(2));
+// 	// std::cout << " =====created camera att 2 : " << cam_att(2) << std::endl;
+// }
 
 void vec_delete_float(std::vector<float> &vec)
 {
@@ -326,11 +341,12 @@ void yaw_ctrl()
 		//==============================================================================
 
 		//vertical distance[HW]=========================================================================
-		if(idx==0) idx = 1;
+		idx_2 = idx;
+		if(idx_2==0) idx_2 = 1;
 		// ax + by + c = 0     a -> ver_a, b -> ver_b, c -> ver_c
-		ver_a = wp_r_y[idx] - wp_r_y[idx-1];
-		ver_b = wp_r_x[idx-1] - wp_r_x[idx];
-		ver_c = -wp_r_x[idx-1] * (wp_r_y[idx]-wp_r_y[idx-1]) + wp_r_y[idx-1] * (wp_r_x[idx] - wp_r_x[idx-1]);
+		ver_a = wp_r_y[idx_2] - wp_r_y[idx_2-1];
+		ver_b = wp_r_x[idx_2-1] - wp_r_x[idx_2];
+		ver_c = -wp_r_x[idx_2-1] * (wp_r_y[idx_2]-wp_r_y[idx_2-1]) + wp_r_y[idx_2-1] * (wp_r_x[idx_2] - wp_r_x[idx_2-1]);
 		// distance between point and line[HW]
 		ver_dist = fabs(ver_a * pos.x + ver_b * pos.y + ver_c) / sqrt(pow(ver_a,2) + pow(ver_b,2));
 
@@ -350,7 +366,7 @@ void yaw_ctrl()
 		// 0.1 -> ++0.1
 		// if (corner_flag == false) 
 		err_psi = k * err_psi_1 + (1-k) * err_psi_2;
-		err_psi_dot = p_psi * err_psi;
+		err_psi_dot = p_psi * err_psi; //- d_psi * t265_ang_vel.z;
 
 	}
 	else if ( idx == wp_num-1 )
@@ -361,10 +377,11 @@ void yaw_ctrl()
 			des_psi_2 += 360.0;
 		}
 		err_psi_2 = des_psi_2- cur_psi;
+		
 		err_psi = err_psi_2;
-		err_psi_dot = 2 * err_psi;
-
+		err_psi_dot = 2 * err_psi; // - d_psi*t265_ang_vel.z;
 	}
+
 	// d gain : - d_psi*t265_ang_vel.z;
 
 
