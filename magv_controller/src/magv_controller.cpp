@@ -90,7 +90,18 @@ std::vector<float> vector2;
 // ----------------------------------------------------------------------------
 void rotCallback(const geometry_msgs::Quaternion& msg);
 void posCallback(const geometry_msgs::Vector3& msg);
+<<<<<<< HEAD
 // void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
+=======
+<<<<<<< HEAD
+// void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg);
+=======
+
+void platform_rotCallback(const geometry_msgs::Quaternion& msg);
+void platform_posCallback(const geometry_msgs::Vector3& msg);
+
+>>>>>>> 5c1b5832cb21509f1faafe6338de9a09f1fba6ab
+>>>>>>> 79ddaf71c44eeb175cbc09a8a8fee2d1a87c1872
 void wp_r_x_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void wp_r_y_Callback(const std_msgs::Float32MultiArray::ConstPtr& array);
 void originCallback(const std_msgs::Float32MultiArray::ConstPtr& array);
@@ -224,6 +235,10 @@ void rotCallback(const geometry_msgs::Quaternion& msg)
 	tf::Matrix3x3(quat).getRPY(t265_att.x,t265_att.y,t265_att.z);	
 }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 79ddaf71c44eeb175cbc09a8a8fee2d1a87c1872
 // void t265OdomCallback(const nav_msgs::Odometry::ConstPtr& msg){
 // 	// t265_lin_vel=msg->twist.twist.linear;
 // 	t265_ang_vel=msg->twist.twist.angular;
@@ -233,6 +248,22 @@ void rotCallback(const geometry_msgs::Quaternion& msg)
 // 	// tf::Matrix3x3(quat).getRPY(cam_att(0),cam_att(1),cam_att(2));
 // 	// std::cout << " =====created camera att 2 : " << cam_att(2) << std::endl;
 // }
+<<<<<<< HEAD
+=======
+=======
+void platform_rotCallback(const geometry_msgs::Quaternion& msg)
+{
+	platform_rot.x=msg.x;
+	platform_rot.y=msg.y;
+	platform_rot.z=msg.z;
+	platform_rot.w=msg.w;
+
+	tf::Quaternion platform_quat;
+	tf::quaternionMsgToTF(platform_rot,platform_quat);
+	tf::Matrix3x3(platform_quat).getRPY(platform_att.x,platform_att.y,platform_att.z);	
+}
+>>>>>>> 5c1b5832cb21509f1faafe6338de9a09f1fba6ab
+>>>>>>> 79ddaf71c44eeb175cbc09a8a8fee2d1a87c1872
 
 void vec_delete_float(std::vector<float> &vec)
 {
